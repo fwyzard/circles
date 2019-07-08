@@ -1,0 +1,194 @@
+modelDataAvailable({"groups":[
+  {"label":"Group 1", "weight":1, "id":"0"},
+  {"label":"Group 2", "weight":1, "groups":[
+    {"label":"Group 2.1", "weight":1, "id":"2"},
+    {"label":"Group 2.2", "weight":1, "groups":[
+      {"label":"Group 2.2.1", "weight":1, "id":"4"},
+      {"label":"Group 2.2.2", "weight":1, "id":"5"}
+    ], "id":"3"},
+    {"label":"Group 2.3", "weight":1, "id":"6"},
+    {"label":"Group 2.4", "weight":1, "id":"7"},
+    {"label":"Group 2.5", "weight":1, "groups":[
+      {"label":"Group 2.5.1", "weight":1, "id":"9"},
+      {"label":"Group 2.5.2", "weight":1, "id":"10"},
+      {"label":"Group 2.5.3", "weight":1, "id":"11"},
+      {"label":"Group 2.5.4", "weight":1, "id":"12"}
+    ], "id":"8"},
+    {"label":"Group 2.6", "weight":1, "id":"13"}
+  ], "id":"1"},
+  {"label":"Group 3", "weight":1, "groups":[
+    {"label":"Group 3.1", "weight":1, "id":"15"},
+    {"label":"Group 3.2", "weight":1, "groups":[
+      {"label":"Group 3.2.1", "weight":1, "id":"17"},
+      {"label":"Group 3.2.2", "weight":1, "id":"18"},
+      {"label":"Group 3.2.3", "weight":1, "id":"19"}
+    ], "id":"16"},
+    {"label":"Group 3.3", "weight":1, "id":"20"},
+    {"label":"Group 3.4", "weight":1, "groups":[
+      {"label":"Group 3.4.1", "weight":1, "id":"22"},
+      {"label":"Group 3.4.2", "weight":1, "id":"23"},
+      {"label":"Group 3.4.3", "weight":1, "id":"24"},
+      {"label":"Group 3.4.4", "weight":1, "id":"25"},
+      {"label":"Group 3.4.5", "weight":1, "id":"26"}
+    ], "id":"21"},
+    {"label":"Group 3.5", "weight":1, "groups":[
+      {"label":"Group 3.5.1", "weight":1, "id":"28"},
+      {"label":"Group 3.5.2", "weight":1, "id":"29"},
+      {"label":"Group 3.5.3", "weight":1, "id":"30"},
+      {"label":"Group 3.5.4", "weight":1, "id":"31"},
+      {"label":"Group 3.5.5", "weight":1, "id":"32"}
+    ], "id":"27"},
+    {"label":"Group 3.6", "weight":1, "id":"33"}
+  ], "id":"14"},
+  {"label":"Group 4", "weight":1, "groups":[
+    {"label":"Group 4.1", "weight":1, "groups":[
+      {"label":"Group 4.1.1", "weight":1, "id":"36"},
+      {"label":"Group 4.1.2", "weight":1, "id":"37"},
+      {"label":"Group 4.1.3", "weight":1, "id":"38"},
+      {"label":"Group 4.1.4", "weight":1, "id":"39"}
+    ], "id":"35"},
+    {"label":"Group 4.2", "weight":1, "id":"40"},
+    {"label":"Group 4.3", "weight":1, "id":"41"},
+    {"label":"Group 4.4", "weight":1, "groups":[
+      {"label":"Group 4.4.1", "weight":1, "id":"43"},
+      {"label":"Group 4.4.2", "weight":1, "id":"44"},
+      {"label":"Group 4.4.3", "weight":1, "id":"45"}
+    ], "id":"42"},
+    {"label":"Group 4.5", "weight":1, "groups":[
+      {"label":"Group 4.5.1", "weight":1, "id":"47"},
+      {"label":"Group 4.5.2", "weight":1, "id":"48"},
+      {"label":"Group 4.5.3", "weight":1, "id":"49"},
+      {"label":"Group 4.5.4", "weight":1, "id":"50"}
+    ], "id":"46"},
+    {"label":"Group 4.6", "weight":1, "groups":[
+      {"label":"Group 4.6.1", "weight":1, "id":"52"},
+      {"label":"Group 4.6.2", "weight":1, "id":"53"},
+      {"label":"Group 4.6.3", "weight":1, "id":"54"},
+      {"label":"Group 4.6.4", "weight":1, "id":"55"},
+      {"label":"Group 4.6.5", "weight":1, "id":"56"}
+    ], "id":"51"},
+    {"label":"Group 4.7", "weight":1, "id":"57"}
+  ], "id":"34"},
+  {"label":"Group 5", "weight":1, "id":"58"},
+  {"label":"Group 6", "weight":1, "groups":[
+    {"label":"Group 6.1", "weight":1, "groups":[
+      {"label":"Group 6.1.1", "weight":1, "id":"61"},
+      {"label":"Group 6.1.2", "weight":1, "id":"62"},
+      {"label":"Group 6.1.3", "weight":1, "id":"63"}
+    ], "id":"60"},
+    {"label":"Group 6.2", "weight":1, "id":"64"},
+    {"label":"Group 6.3", "weight":1, "id":"65"},
+    {"label":"Group 6.4", "weight":1, "groups":[
+      {"label":"Group 6.4.1", "weight":1, "id":"67"},
+      {"label":"Group 6.4.2", "weight":1, "id":"68"},
+      {"label":"Group 6.4.3", "weight":1, "id":"69"},
+      {"label":"Group 6.4.4", "weight":1, "id":"70"},
+      {"label":"Group 6.4.5", "weight":1, "id":"71"}
+    ], "id":"66"}
+  ], "id":"59"},
+  {"label":"Group 7", "weight":1, "groups":[
+    {"label":"Group 7.1", "weight":1, "groups":[
+      {"label":"Group 7.1.1", "weight":1, "id":"74"},
+      {"label":"Group 7.1.2", "weight":1, "id":"75"},
+      {"label":"Group 7.1.3", "weight":1, "id":"76"}
+    ], "id":"73"},
+    {"label":"Group 7.2", "weight":1, "groups":[
+      {"label":"Group 7.2.1", "weight":1, "id":"78"},
+      {"label":"Group 7.2.2", "weight":1, "id":"79"},
+      {"label":"Group 7.2.3", "weight":1, "id":"80"},
+      {"label":"Group 7.2.4", "weight":1, "id":"81"}
+    ], "id":"77"},
+    {"label":"Group 7.3", "weight":1, "id":"82"},
+    {"label":"Group 7.4", "weight":1, "id":"83"}
+  ], "id":"72"},
+  {"label":"Group 8", "weight":1, "id":"84"},
+  {"label":"Group 9", "weight":1, "id":"85"},
+  {"label":"Group 10", "weight":1, "groups":[
+    {"label":"Group 10.1", "weight":1, "id":"87"},
+    {"label":"Group 10.2", "weight":1, "id":"88"},
+    {"label":"Group 10.3", "weight":1, "id":"89"},
+    {"label":"Group 10.4", "weight":1, "id":"90"},
+    {"label":"Group 10.5", "weight":1, "groups":[
+      {"label":"Group 10.5.1", "weight":1, "id":"92"},
+      {"label":"Group 10.5.2", "weight":1, "id":"93"},
+      {"label":"Group 10.5.3", "weight":1, "id":"94"}
+    ], "id":"91"}
+  ], "id":"86"},
+  {"label":"Group 11", "weight":1, "id":"95"},
+  {"label":"Group 12", "weight":1, "groups":[
+    {"label":"Group 12.1", "weight":1, "id":"97"},
+    {"label":"Group 12.2", "weight":1, "id":"98"},
+    {"label":"Group 12.3", "weight":1, "groups":[
+      {"label":"Group 12.3.1", "weight":1, "id":"100"},
+      {"label":"Group 12.3.2", "weight":1, "id":"101"},
+      {"label":"Group 12.3.3", "weight":1, "id":"102"},
+      {"label":"Group 12.3.4", "weight":1, "id":"103"}
+    ], "id":"99"},
+    {"label":"Group 12.4", "weight":1, "groups":[
+      {"label":"Group 12.4.1", "weight":1, "id":"105"},
+      {"label":"Group 12.4.2", "weight":1, "id":"106"},
+      {"label":"Group 12.4.3", "weight":1, "id":"107"}
+    ], "id":"104"},
+    {"label":"Group 12.5", "weight":1, "groups":[
+      {"label":"Group 12.5.1", "weight":1, "id":"109"},
+      {"label":"Group 12.5.2", "weight":1, "id":"110"},
+      {"label":"Group 12.5.3", "weight":1, "id":"111"},
+      {"label":"Group 12.5.4", "weight":1, "id":"112"}
+    ], "id":"108"},
+    {"label":"Group 12.6", "weight":1, "groups":[
+      {"label":"Group 12.6.1", "weight":1, "id":"114"},
+      {"label":"Group 12.6.2", "weight":1, "id":"115"}
+    ], "id":"113"},
+    {"label":"Group 12.7", "weight":1, "groups":[
+      {"label":"Group 12.7.1", "weight":1, "id":"117"},
+      {"label":"Group 12.7.2", "weight":1, "id":"118"},
+      {"label":"Group 12.7.3", "weight":1, "id":"119"},
+      {"label":"Group 12.7.4", "weight":1, "id":"120"},
+      {"label":"Group 12.7.5", "weight":1, "id":"121"}
+    ], "id":"116"}
+  ], "id":"96"},
+  {"label":"Group 13", "weight":1, "groups":[
+    {"label":"Group 13.1", "weight":1, "id":"123"},
+    {"label":"Group 13.2", "weight":1, "groups":[
+      {"label":"Group 13.2.1", "weight":1, "id":"125"},
+      {"label":"Group 13.2.2", "weight":1, "id":"126"}
+    ], "id":"124"},
+    {"label":"Group 13.3", "weight":1, "id":"127"},
+    {"label":"Group 13.4", "weight":1, "groups":[
+      {"label":"Group 13.4.1", "weight":1, "id":"129"},
+      {"label":"Group 13.4.2", "weight":1, "id":"130"},
+      {"label":"Group 13.4.3", "weight":1, "id":"131"},
+      {"label":"Group 13.4.4", "weight":1, "id":"132"},
+      {"label":"Group 13.4.5", "weight":1, "id":"133"},
+      {"label":"Group 13.4.6", "weight":1, "id":"134"}
+    ], "id":"128"},
+    {"label":"Group 13.5", "weight":1, "id":"135"},
+    {"label":"Group 13.6", "weight":1, "id":"136"},
+    {"label":"Group 13.7", "weight":1, "groups":[
+      {"label":"Group 13.7.1", "weight":1, "id":"138"},
+      {"label":"Group 13.7.2", "weight":1, "id":"139"},
+      {"label":"Group 13.7.3", "weight":1, "id":"140"},
+      {"label":"Group 13.7.4", "weight":1, "id":"141"}
+    ], "id":"137"}
+  ], "id":"122"},
+  {"label":"Group 14", "weight":1, "id":"142"},
+  {"label":"Group 15", "weight":1, "groups":[
+    {"label":"Group 15.1", "weight":1, "groups":[
+      {"label":"Group 15.1.1", "weight":1, "id":"145"},
+      {"label":"Group 15.1.2", "weight":1, "id":"146"},
+      {"label":"Group 15.1.3", "weight":1, "id":"147"},
+      {"label":"Group 15.1.4", "weight":1, "id":"148"},
+      {"label":"Group 15.1.5", "weight":1, "id":"149"}
+    ], "id":"144"},
+    {"label":"Group 15.2", "weight":1, "id":"150"},
+    {"label":"Group 15.3", "weight":1, "id":"151"},
+    {"label":"Group 15.4", "weight":1, "groups":[
+      {"label":"Group 15.4.1", "weight":1, "id":"153"},
+      {"label":"Group 15.4.2", "weight":1, "id":"154"},
+      {"label":"Group 15.4.3", "weight":1, "id":"155"},
+      {"label":"Group 15.4.4", "weight":1, "id":"156"},
+      {"label":"Group 15.4.5", "weight":1, "id":"157"},
+      {"label":"Group 15.4.6", "weight":1, "id":"158"}
+    ], "id":"152"}
+  ], "id":"143"}
+]}, {label: "3-level random hierarchy", file: "random-3-level.jsonp"});

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>HLT cpu utilisation</title>
+
+    <meta charset="utf-8" />
+
+    <!-- CarrotSearch Circles -->
+    <link rel="stylesheet" href="CarrotSearch/assets/css/reset.css" />
+    <link rel="stylesheet" href="CarrotSearch/assets/css/layout.css" />
+
+    <script src="CarrotSearch/carrotsearch.circles.js"></script>
+    <!--script src="CarrotSearch/carrotsearch.circles.asserts.js"></script-->
+    <script src="CarrotSearch/assets/js/carrotsearch.examples.onresizehook.js"></script>
+    <script src="CarrotSearch/assets/js/carrotsearch.examples.viewport.js"></script>
+
+    <!-- jQuery, DataTables, and plugins-->
+    <link rel="stylesheet" type="text/css" href="DataTables-1.10.18/css/jquery.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="Buttons-1.5.6/css/buttons.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="FixedColumns-3.2.5/css/fixedColumns.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="FixedHeader-3.1.4/css/fixedHeader.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="RowGroup-1.1.0/css/rowGroup.dataTables.min.css"/>
+    <link rel="stylesheet" type="text/css" href="Scroller-2.0.0/css/scroller.dataTables.min.css"/>
+     
+    <script type="text/javascript" src="jQuery-3.3.1/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="DataTables-1.10.18/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="Buttons-1.5.6/js/dataTables.buttons.min.js"></script>
+    <script type="text/javascript" src="Buttons-1.5.6/js/buttons.html5.min.js"></script>
+    <script type="text/javascript" src="FixedColumns-3.2.5/js/dataTables.fixedColumns.min.js"></script>
+    <script type="text/javascript" src="FixedHeader-3.1.4/js/dataTables.fixedHeader.min.js"></script>
+    <script type="text/javascript" src="RowGroup-1.1.0/js/dataTables.rowGroup.min.js"></script>
+    <script type="text/javascript" src="Scroller-2.0.0/js/dataTables.scroller.min.js"></script>
+
+    <!-- local code -->
+    <style type="text/css"> 
+      html, body {
+        height: 100%;
+        margin: 0;
+      }
+
+      .property_label {
+        width:      60%;
+        text-align: left;
+      }
+
+      .property_value {
+        width:      20%;
+        text-align: right;
+      }
+
+      #selected {
+        font-style: italic;
+      }
+    </style>
+
+    <script src="common.js"></script>
+
+  </head>
+
+  <body>
+    <div id="visualization" style="width: 60%;"></div>
+
+    <div id="sidebar" style="width: 40%; overflow: auto;">
+      <table id="properties" style="width:100%">
+      <thead>
+        <tr>
+          <th class="property_label">Element</th>
+          <th class="property_value">Time</th>
+          <th class="property_value">Fraction</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+      <tfoot>
+        <tr id="selected">
+          <td id="selected_label" class="property_label"></td>
+          <td id="selected_value" class="property_value"></td>
+          <td id="selected_percent" class="property_value"></td>
+        </tr>
+      </tfoot>
+      </table>
+    </div>
+
+    <script>
+      function embed() {
+        // We respin until the visualization container has non-zero area (there are race 
+        // conditions on Chrome which permit that) and the visualization class is loaded.
+        var container = document.getElementById("visualization");
+        if (container.clientWidth <= 0 || container.clientHeight <= 0 || !window["CarrotSearchCircles"]) {
+          window.setTimeout(embed, 250);
+          return;
+        }
+
+        // Create an empty CarrotSearchCircles without any data
+        var circles = new CarrotSearchCircles({
+          id: "visualization",
+          captureMouseEvents: false,
+          pixelRatio: Math.min(2, window.devicePixelRatio || 1),
+          visibleGroupCount: 0,
+          showZeroWeightGroups: false,
+          titleBar: "inscribed",
+          titleBarTextColor: "#444",
+          dataObject: null
+        });
+
+        installResizeHandlerFor(circles, 300);
+
+        circles.set("groupColorDecorator", groupColorDecorator);
+        circles.set("isGroupVisible", circlesVisibilityDecorator);
+
+        circles.set("titleBarLabelDecorator", function(attrs) {
+          var table = $('#properties').DataTable();
+          table.clear();
+          $('#selected_label').text();
+          $('#selected_value').text();
+          $('#selected_percent').text();
+          $('#selected').hide();
+
+          var total = circles.get("dataObject").weight;
+
+          if (attrs.hoverGroup) {
+            var group = attrs.hoverGroup;
+            var value = fixed(group.weight) + " ms";
+            var percent = fixed(group.weight / total * 100.) + " %";
+            table.row.add( [ group.label, value, percent ] );
+            attrs.label = value;
+          } else if (attrs.selectedGroups.length > 0) {
+            var sum = 0.;
+            for (var i = 0; i < attrs.selectedGroups.length; i++) {
+              var group = attrs.selectedGroups[i];
+              var value = fixed(group.weight) + " ms";
+              var percent = fixed(group.weight / total * 100.) + " %";
+              sum += group.weight;
+              table.row.add( [ group.label, value, percent ] );
+              attrs.label = value;
+            }
+            if (attrs.selectedGroups.length > 1) {
+              var label = "selected";
+              var value = fixed(sum) + " ms";
+              var percent = fixed(sum / total * 100.) + " %";
+              $('#selected_label').text(label);
+              $('#selected_value').text(value);
+              $('#selected_percent').text(percent);
+              $('#selected').show();
+              attrs.label = value;
+            }
+          } else {
+            // Show all top level groups
+            var groups = circles.get("dataObject").groups;
+            for (var i = 0; i < groups.length; i++) {
+              var group = groups[i];
+              var value = fixed(group.weight) + " ms";
+              var percent = fixed(group.weight / total * 100.) + " %";
+              table.row.add( [ group.label, value, percent ] );
+            }
+            var label   = "total";
+            var value   = fixed(total) + " ms";
+            var percent = fixed(100.) + " %";
+            $('#selected_label').text(label);
+            $('#selected_value').text(value);
+            $('#selected_percent').text(percent);
+            $('#selected').show();
+            attrs.label = value;
+          }
+
+          table.draw();
+        });
+
+        // Load the data
+        var url = new URL(window.location.href);
+        var data = url.searchParams.get("data");
+        loadJson(circles, data);
+      }
+
+      embed();
+    </script>
+
+    <script>
+      $(document).ready(function() {
+        $('#properties').DataTable( {
+          "aoColumns": [
+            { "sClass": "property_label" },
+            { "sClass": "property_value" },
+            { "sClass": "property_value" }
+          ],
+          //"info": true,
+          "paging": false,
+          "searching": false
+        } );
+      });
+    </script>
+
+  </body>
+</html>

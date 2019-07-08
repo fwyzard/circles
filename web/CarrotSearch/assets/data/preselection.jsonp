@@ -1,0 +1,27 @@
+// Preselection, and other active attributes.
+modelDataAvailable({
+  // open the top-level group.
+  open:true,
+  groups:[
+    { label:"Group 1", groups:[
+      { label:"Group 1.1" },
+      { label:"Group 1.2" },
+      { label:"Group 1.3" },
+      { label:"Group 1.4" },
+      { label:"Group 1.5" },
+      { label:"Group 1.6" },
+      { label:"Group 1.7" }
+    ]},
+    // Zoom on this group.
+    { label:"Group 2", zoomed:true },
+    // Select this group.
+    { label:"Group 3", selected:true },
+    { label:"Group 4" },
+    { label:"Group 5" },
+    { label:"Group 6" },
+    { label:"Group 7" },
+    { label:"Group 8" },
+    { label:"Group 9" },
+    { label:"Group 10" },
+  ]
+}, {label: "Preselected groups", file: "preselection.jsonp"});

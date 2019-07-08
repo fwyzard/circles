@@ -1,0 +1,379 @@
+// From: http://www.jasondavies.com/coffee-wheel/wheel.json
+modelDataAvailable({
+  groups: [
+  {
+    "label": "Aromas",
+    "groups": [
+      {
+        "label": "Enzymatic",
+        "groups": [
+          {
+            "label": "Flowery",
+            "groups": [
+              {
+                "label": "Floral",
+                "groups": [
+                  {
+                    "label": "Coffee Blossom", "colour": "#f9f0ab"
+                  },
+                  {
+                    "label": "Tea Rose", "colour": "#e8e596"
+                  }
+                ]
+              },
+              {
+                "label": "Fragrant",
+                "groups": [
+                  {
+                    "label": "Cardamon Caraway", "colour": "#f0e2a3"
+                  },
+                  {
+                    "label": "Coriander Seeds", "colour": "#ede487"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Fruity",
+            "groups": [
+              {
+                "label": "Citrus",
+                "groups": [
+                  {
+                    "label": "Lemon", "colour": "#efd580"
+                  },
+                  {
+                    "label": "Apple", "colour": "#f1cb82"
+                  }
+                ]
+              },
+              {
+                "label": "Berry-like",
+                "groups": [
+                  {
+                    "label": "Apricot", "colour": "#f1c298"
+                  },
+                  {
+                    "label": "Blackberry", "colour": "#e8b598"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Herby",
+            "groups": [
+              {
+                "label": "Alliaceous",
+                "groups": [
+                  {
+                    "label": "Onion", "colour": "#d5dda1"
+                  },
+                  {
+                    "label": "Garlic", "colour": "#c9d2b5"
+                  }
+                ]
+              },
+              {
+                "label": "Leguminous",
+                "groups": [
+                  {
+                    "label": "Cucumber", "colour": "#aec1ad"
+                  },
+                  {
+                    "label": "Garden Peas", "colour": "#a7b8a8"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Sugar Browning",
+        "groups": [
+          {
+            "label": "Nutty",
+            "groups": [
+              {
+                "label": "Nut-like",
+                "groups": [
+                  {
+                    "label": "Roasted Peanuts", "colour": "#b49a3d"
+                  },
+                  {
+                    "label": "Walnuts", "colour": "#b28647"
+                  }
+                ]
+              },
+              {
+                "label": "Malt-like",
+                "groups": [
+                  {
+                    "label": "Balsamic Rice", "colour": "#a97d32"
+                  },
+                  {
+                    "label": "Toast", "colour": "#b68334"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Carmelly",
+            "groups": [
+              {
+                "label": "Candy-like",
+                "groups": [
+                  {
+                    "label": "Roasted Hazelnut", "colour": "#d6a680"
+                  },
+                  {
+                    "label": "Roasted Almond", "colour": "#dfad70"
+                  }
+                ]
+              },
+              {
+                "label": "Syrup-like",
+                "groups": [
+                  {
+                    "label": "Honey", "colour": "#a2765d"
+                  },
+                  {
+                    "label": "Maple Syrup", "colour": "#9f6652"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Chocolatey",
+            "groups": [
+              {
+                "label": "Chocolate-like",
+                "groups": [
+                  {
+                    "label": "Bakers", "colour": "#b9763f"
+                  },
+                  {
+                    "label": "Dark Chocolate", "colour": "#bf6e5d"
+                  }
+                ]
+              },
+              {
+                "label": "Vanilla-like",
+                "groups": [
+                  {
+                    "label": "Swiss", "colour": "#af643c"
+                  },
+                  {
+                    "label": "Butter", "colour": "#9b4c3f"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Dry Distillation",
+        "groups": [
+          {
+            "label": "Resinous",
+            "groups": [
+              {
+                "label": "Turpeny",
+                "groups": [
+                  {
+                    "label": "Piney", "colour": "#72659d"
+                  },
+                  {
+                    "label": "Blackcurrant-like", "colour": "#8a6e9e"
+                  }
+                ]
+              },
+              {
+                "label": "Medicinal",
+                "groups": [
+                  {
+                    "label": "Camphoric", "colour": "#8f5c85"
+                  },
+                  {
+                    "label": "Cineolic", "colour": "#934b8b"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Spicy",
+            "groups": [
+              {
+                "label": "Warming",
+                "groups": [
+                  {
+                    "label": "Cedar", "colour": "#9d4e87"
+                  },
+                  {
+                    "label": "Pepper", "colour": "#92538c"
+                  }
+                ]
+              },
+              {
+                "label": "Pungent",
+                "groups": [
+                  {
+                    "label": "Clove", "colour": "#8b6397"
+                  },
+                  {
+                    "label": "Thyme", "colour": "#716084"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Carbony",
+            "groups": [
+              {
+                "label": "Smokey",
+                "groups": [
+                  {
+                    "label": "Tarry", "colour": "#2e6093"
+                  },
+                  {
+                    "label": "Pipe Tobacco", "colour": "#3a5988"
+                  }
+                ]
+              },
+              {
+                "label": "Ashy",
+                "groups": [
+                  {
+                    "label": "Burnt", "colour": "#4a5072"
+                  },
+                  {
+                    "label": "Charred", "colour": "#393e64"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "label": "Tastes",
+    "groups": [
+      {
+        "label": "Bitter",
+        "groups": [
+          {
+            "label": "Pungent",
+            "groups": [
+              {
+                "label": "Creosol", "colour": "#aaa1cc"
+              },
+              {
+                "label": "Phenolic", "colour": "#e0b5c9"
+              }
+            ]
+          },
+          {
+            "label": "Harsh",
+            "groups": [
+              {
+                "label": "Caustic", "colour": "#e098b0"
+              },
+              {
+                "label": "Alkaline", "colour": "#ee82a2"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Salt",
+        "groups": [
+          {
+            "label": "Sharp",
+            "groups": [
+              {
+                "label": "Astringent", "colour": "#ef91ac"
+              },
+              {
+                "label": "Rough", "colour": "#eda994"
+              }
+            ]
+          },
+          {
+            "label": "Bland",
+            "groups": [
+              {
+                "label": "Neutral", "colour": "#eeb798"
+              },
+              {
+                "label": "Soft", "colour": "#ecc099"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Sweet",
+        "groups": [
+          {
+            "label": "Mellow",
+            "groups": [
+              {
+                "label": "Delicate", "colour": "#f6d5aa"
+              },
+              {
+                "label": "Mild", "colour": "#f0d48a"
+              }
+            ]
+          },
+          {
+            "label": "Acidy",
+            "groups": [
+              {
+                "label": "Nippy", "colour": "#efd95f"
+              },
+              {
+                "label": "Piquant", "colour": "#eee469"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "label": "Sour",
+        "groups": [
+          {
+            "label": "Winey",
+            "groups": [
+              {
+                "label": "Tangy", "colour": "#dbdc7f"
+              },
+              {
+                "label": "Tart", "colour": "#dfd961"
+              }
+            ]
+          },
+          {
+            "label": "Soury",
+            "groups": [
+              {
+                "label": "Hard", "colour": "#ebe378"
+              },
+              {
+                "label": "Acrid", "colour": "#f5e351"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }]}, {label: "Coffee attributes", file: "coffee.jsonp"});
