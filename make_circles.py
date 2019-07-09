@@ -249,11 +249,17 @@ def build_module_hierarchy(data, types, groups):
       sys.stderr.write('Warning: module %s does not have any C++ type\n' % label)
       cxxtype = 'other'
 
-    if not group in hierarchy:
-      hierarchy[group] = {}
-    if not cxxtype in hierarchy[group]:
-      hierarchy[group][cxxtype] = {}
-    hierarchy[group][cxxtype][label] = data[label][2]    # 2 is the real time average usage
+    packages = group.split('/')
+    if not packages[0] in hierarchy:
+      hierarchy[packages[0]] = {}
+    level = hierarchy[packages[0]]
+    if len(packages) > 1:
+      if not packages[1] in hierarchy[packages[0]]:
+        hierarchy[packages[0]][packages[1]] = {}
+      level = hierarchy[packages[0]][packages[1]]
+    if not cxxtype in level:
+      level[cxxtype] = {}
+    level[cxxtype][label] = data[label][2]    # 2 is the real time average usage
 
   return hierarchy
 
