@@ -21,7 +21,7 @@
     <link rel="stylesheet" type="text/css" href="FixedHeader-3.1.4/css/fixedHeader.dataTables.min.css"/>
     <link rel="stylesheet" type="text/css" href="RowGroup-1.1.0/css/rowGroup.dataTables.min.css"/>
     <link rel="stylesheet" type="text/css" href="Scroller-2.0.0/css/scroller.dataTables.min.css"/>
-     
+
     <script type="text/javascript" src="jQuery-3.3.1/jquery-3.3.1.min.js"></script>
     <script type="text/javascript" src="DataTables-1.10.18/js/jquery.dataTables.min.js"></script>
     <script type="text/javascript" src="Buttons-1.5.6/js/dataTables.buttons.min.js"></script>
@@ -31,8 +31,11 @@
     <script type="text/javascript" src="RowGroup-1.1.0/js/dataTables.rowGroup.min.js"></script>
     <script type="text/javascript" src="Scroller-2.0.0/js/dataTables.scroller.min.js"></script>
 
+    <!-- load the available datasets -->
+    <script type="text/javascript" src="cgi-bin/datalist.py"></script>
+
     <!-- local code -->
-    <style type="text/css"> 
+    <style type="text/css">
       html, body {
         height: 100%;
         margin: 0;
@@ -61,6 +64,13 @@
     <div id="visualization" style="width: 60%;"></div>
 
     <div id="sidebar" style="width: 40%; overflow: auto;">
+      <form>
+        <b>Dataset</b>
+        <select id="dataset_menu" name="dataset" onchange="this.form.submit()">
+        </select>
+      </form>
+      <hr/>
+
       <table id="properties" style="width:100%">
       <thead>
         <tr>
@@ -83,7 +93,7 @@
 
     <script>
       function embed() {
-        // We respin until the visualization container has non-zero area (there are race 
+        // We respin until the visualization container has non-zero area (there are race
         // conditions on Chrome which permit that) and the visualization class is loaded.
         var container = document.getElementById("visualization");
         if (container.clientWidth <= 0 || container.clientHeight <= 0 || !window["CarrotSearchCircles"]) {
@@ -166,10 +176,25 @@
           table.draw();
         });
 
-        // Load the data
+        // Extract the current dataset
         var url = new URL(window.location.href);
-        var data = url.searchParams.get("data");
-        loadJson(circles, data);
+        var dataset = url.searchParams.get("dataset");
+
+        // Load the available datasets
+        var dataset_menu = document.getElementById("dataset_menu");
+        for (var i = 0; i < datasets.length; i++) {
+          var entry = document.createElement("option");
+          entry.text = datasets[i];
+          entry.value = datasets[i];
+          dataset_menu.options.add(entry);
+          if (entry.text == dataset) {
+            dataset_menu.selectedIndex = i;
+          }
+        }
+
+        // Load the current dataset
+        //FIXME sanitise the input (no dots, slashes, etc.)
+        loadJsonInto(circles, "dataObject", "data/" + dataset + ".json");
       }
 
       embed();
