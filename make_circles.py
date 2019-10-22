@@ -249,7 +249,7 @@ def build_module_hierarchy(data, types, groups):
       sys.stderr.write('Warning: module %s does not have any C++ type\n' % label)
       cxxtype = 'other'
 
-    packages = group.split('/')
+    packages = group.split('|')
     if not packages[0] in hierarchy:
       hierarchy[packages[0]] = {}
     level = hierarchy[packages[0]]
