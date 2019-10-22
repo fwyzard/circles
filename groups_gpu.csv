@@ -5521,7 +5521,10 @@ hltVerticesPFFilter, Vertices
 
 hltOnlineBeamSpotCUDA, Pixels on GPU
 hltPixelTracks, Pixels on GPU
+hltPixelTracksSoA, Pixels on GPU
 hltPixelVertices, Pixels on GPU
+hltPixelVerticesCUDA, Pixels on GPU
+hltPixelVerticesSoA, Pixels on GPU
 hltSiPixelRecHits, Pixels on GPU
 pixelTracksHitQuadruplets, Pixels on GPU
 siPixelClustersCUDAPreSplitting, Pixels on GPU
