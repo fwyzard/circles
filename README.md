@@ -77,11 +77,8 @@ See the output of `./make_circles.py -h` for more information.
 
 ## Setting up the interactive page on a web server
 
-Copy the whole repository to a web server with support for cgi-bin scripts, and create an empty directory `data`.
-The directory structure should look like
+After cloning the repository, the directory structure should look like this:
 ```
-data/
-    (empty)
 web/
     Buttons-1.5.6/
     CarrotSearch/
@@ -91,6 +88,7 @@ web/
     RowGroup-1.1.0/
     Scroller-2.0.0/
     cgi-bin/
+    data/
     jQuery-3.3.1/
     common.js
     datatables.css
@@ -106,10 +104,11 @@ groups_recoPhaseII.csv
 make_circles.py
 ```
 
+Just copy the `web/` drectory to a web server, and enable support for cgi-bin scripts for the `cgi-bin` directory.
+
 
 ## Uploading the data to a web server
 
-Copy the JSON files produced by `make_circles.py` to the `data/` directory, and refresh the web page.
-They files wil automatically appear in the "Datasets" drop-down box.
+Copy the JSON files produced by `make_circles.py` to the `data/` subdirectory, and refresh the web page.
+They files will automatically appear in the "Datasets" drop-down box.
 Select one to visualise its content in the interactive plot.
-
