@@ -267,13 +267,13 @@ def build_module_hierarchy(data, types, groups):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description = 'Parse the FastReport in one or more CMSSW log files, and write a JSON representation to the standard output or a file.')
 
-  parser.add_argument('--groups', '-g', dest = 'groups', action = 'store', type = argparse.FileType('r'), default = 'groups.csv',
-                      help = 'a CSV file describing the grouing of modules (default is \'groups.csv\').')
+  parser.add_argument('--groups', '-g', dest = 'groups', action = 'store', type = argparse.FileType('r'), required = True,
+                      help = 'a CSV file describing the grouping of modules (required).')
 
   parser.add_argument('--colours', '-C', dest = 'colours', action = 'store', type = argparse.FileType('r'), default = 'colours.csv',
-                      help = 'a CSV file describing the colours used to draw each group (default is \'colours.csv\'.')
+                      help = 'a CSV file describing the colours used to draw each group (default is \'colours.csv\').')
 
-  parser.add_argument('--config', '-c', dest = 'config', action = 'store',
+  parser.add_argument('--config', '-c', dest = 'config', action = 'store', required = True,
                       help = 'required: the CMSSW configuration file corresponding to the log file(s) being processed.')
 
   parser.add_argument('--output', '-o', dest = 'json', action = 'store', nargs = '?', type = argparse.FileType('w'), default = sys.stdout,
