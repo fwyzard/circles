@@ -33,10 +33,10 @@ FastReport       431.4 ms                      433.4 ms                     +983
 
 ## Converting the output into JSON format
 
-The `make_circles.py` requires two input files: the output of the CMSSW job, and thecorrespondig fully-expanded python configuration file, which is used to associate
+The `make_circles.py` requires two input files: the output of the CMSSW job, and the corresponding fully-expanded python configuration file (use `edmConfigDump` on configs created with `cmsDriver.py`), which is used to associate
 the C++ type to each module.
 
-The ouptut is structured in a hierarchidefined by
+The output is structured in a hierarchy defined by
   - the module group;
   - the module C++ type;
   - the individual module.
@@ -110,5 +110,6 @@ Just copy the `web/` drectory to a web server, and enable support for cgi-bin sc
 ## Uploading the data to a web server
 
 Copy the JSON files produced by `make_circles.py` to the `data/` subdirectory, and refresh the web page.
-They files will automatically appear in the "Datasets" drop-down box.
+The files will automatically appear in the "Datasets" drop-down box.
 Select one to visualise its content in the interactive plot.
+(Alternatively, append `?dataset=x` to the URL, where `x` is the name of the dataset.)
