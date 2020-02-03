@@ -67,6 +67,7 @@
       <form>
         <b>Dataset</b>
         <select id="dataset_menu" name="dataset" onchange="this.form.submit()">
+          <option disabled selected>Please select the data to visualise</option>
         </select>
       </form>
       <hr/>
@@ -188,7 +189,7 @@
           entry.value = datasets[i];
           dataset_menu.options.add(entry);
           if (entry.text == dataset) {
-            dataset_menu.selectedIndex = i;
+            dataset_menu.selectedIndex = i+1;
           }
         }
 
