@@ -1,0 +1,23 @@
+{
+  "AlCa": "#ff9999",
+  "B tagging": "#663300",
+  "E/Gamma": "#ffee00",
+  "ECAL": "#4ddbff",
+  "HCAL": "#b5a642",
+  "HLT": "#808080",
+  "I/O": "#222222",
+  "Jets/MET": "#ee3300",
+  "L1T": "#cccccc",
+  "Muons": "#0040ff",
+  "Particle Flow": "#ff66cc",
+  "Pixels": "#33ff33",
+  "Taus": "#800055",
+  "Tracking": "#009900",
+  "Vertices": "#006600",
+
+  "Pixels on GPU": "#33ff33",
+  "ECAL on GPU": "#4ddbff",
+  "HCAL on GPU": "#b5a642",
+
+  "other": "#ffffff"
+}

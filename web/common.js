@@ -19,13 +19,14 @@ function parseGetData() {
 }
 
 // load JSON data from the given URL, and sets the target's dataObject to it
-function loadJsonInto(target, attribute, url) {
+function loadJsonInto(target, attribute, url, then) {
   var xhttp = new XMLHttpRequest();
   xhttp.overrideMimeType("application/json");
   xhttp.open('GET', url);
   xhttp.onreadystatechange = function () {
     if (xhttp.readyState == 4) {
-      target.set(attribute, JSON.parse(xhttp.responseText));
+      target[attribute] = JSON.parse(xhttp.responseText);
+      then();
     }
   };
   xhttp.send(null);
