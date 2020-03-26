@@ -74,6 +74,8 @@ The file is structured in three sections:
 
 After cloning the repository, the directory structure should look like this:
 ```
+scripts/
+    convert.py
 web/
     Buttons-1.5.6/
     CarrotSearch/
@@ -118,3 +120,17 @@ the "upload a file" button: this will upload and visualise the dataset, without
 adding it permanently to the web server.
 
 The metric, grouping and colour style can be changed directly on the web page.
+
+
+## Converting old JSON files
+
+The format of the JSON files used by the web interface has changed with respect
+to what was produced by `make_circles.py`.
+
+While the old files contained less information, it is possible to use the script
+`convert.py` (found in the `scripts/` subdirectory) to convert them to the
+latest format and visualise them on the web interface, and *e.g.* change the
+grouping and colour scheme on fly:
+```
+./scripts/convert.py old.json > new.json
+```
