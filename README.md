@@ -76,6 +76,7 @@ After cloning the repository, the directory structure should look like this:
 ```
 scripts/
     convert.py
+    merge.py
 web/
     Buttons-1.5.6/
     CarrotSearch/
@@ -122,6 +123,26 @@ adding it permanently to the web server.
 The metric, grouping and colour style can be changed directly on the web page.
 
 
+# Working with JSON files
+
+While the JSON files produces by the `FastTimerService` can be visualised
+directly in the web interface, under the `scripts/` directory there some python
+scripts to perfrm common operations on them: merging multiple files, converting
+from the old format, *etc*.
+
+## Merging multiple JSON files
+
+It is possible to merge multiple JSON files, for exmple to "harvest" the results
+of multiple jobs running in paralle, using the `merge.py` script.
+
+```bash
+./scripts/merge.py input1.json input2.json ... > output.json
+```
+
+To be mergeable, the files must list the same metrics (*i.e.* the `resources`
+section of the JSON).
+
+
 ## Converting old JSON files
 
 The format of the JSON files used by the web interface has changed with respect
@@ -131,6 +152,6 @@ While the old files contained less information, it is possible to use the script
 `convert.py` (found in the `scripts/` subdirectory) to convert them to the
 latest format and visualise them on the web interface, and *e.g.* change the
 grouping and colour scheme on fly:
-```
+```bash
 ./scripts/convert.py old.json > new.json
 ```
