@@ -1,3 +1,5 @@
+![banner](web/images/banner.png)
+
 # Resources utilisation plot
 
 Visualise the resources used by different modules in a CMSSW job as a
