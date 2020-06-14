@@ -346,5 +346,6 @@
   "TriggerSummaryProducerRAW|": "HLT",
   "VertexFromTrackProducer|": "Vertices",
   "VertexMerger|": "Vertices",
-  "VertexSelector|": "Vertices"
+  "VertexSelector|": "Vertices",
+  "other|other": "other|other"
 }
