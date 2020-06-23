@@ -105,12 +105,16 @@ web/
     datatables.min.css
     datatables.min.js
     piechart.html
+    piechart.html
 README.md
 ```
 
-Just copy the `web/` drectory to a web server, and enable support for cgi-bin
-scripts for the `cgi-bin` directory.
+Just copy the `web/` drectory to a web server. Two versions of the web page are available:
+  - `piechart.php` requires PHP to be enabled in the web server; 
+  - `piechart.html` does not use PHP, but requires support for cgi-bin
+    scripts for the `cgi-bin` directory.
 
+The functionality of the two pages is otherwise identical.
 
 ## Visualising the data
 
