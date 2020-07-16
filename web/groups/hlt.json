@@ -282,6 +282,7 @@
   "MuonLinksProducer|": "Muons",
   "MuonSeedGenerator|": "Muons",
   "MuonTrackingRegionEDProducer|": "Muons",
+  "ParameterSetBlobProducer|": "HLT",
   "PFBlockProducer|": "Particle Flow",
   "PFClusterProducer|": "Particle Flow",
   "PFECALSuperClusterProducer|": "ECAL",
