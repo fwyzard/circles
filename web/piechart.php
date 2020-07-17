@@ -145,7 +145,7 @@
         var params = []
         for (key in config) {
           if (config[key] != null)
-            params.push(key + "=" + config[key]);
+            params.push(encodeURIComponent(key) + "=" + encodeURIComponent(config[key]));
         }
         return "?" + params.join("&");
       }
