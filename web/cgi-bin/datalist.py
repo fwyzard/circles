@@ -5,7 +5,7 @@ import sys, os, os.path, glob
 print "Content-Type: text/javascript;charset=utf-8\n"
 
 # list all JSON files
-files = glob.glob('../data/*.json')
+files = glob.glob('../data/*.json', recursive = True)
 # sort by modification time
 files.sort(key = os.path.getmtime)
 # remove the path and extension
