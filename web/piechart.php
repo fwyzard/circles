@@ -35,7 +35,10 @@
     <script type="text/javascript">
     <?php
       function preformat($file) {
-        return "'" . basename($file, ".json") . "'";
+        $file = explode('/', $file);
+        unset($file[0]);
+        $file = implode('/', $file);
+        return "'" . dirname($file) . "/" . basename($file, ".json") . "'";
       }
 
       // Does not support flag GLOB_BRACE
