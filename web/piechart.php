@@ -41,7 +41,8 @@
         return "'" . dirname($file) . "/" . basename($file, ".json") . "'";
       }
 
-      // Does not support flag GLOB_BRACE
+      // from https://stackoverflow.com/a/17161106/2050986
+      // does not support flag GLOB_BRACE
       function rglob($pattern, $flags = 0) {
           $files = glob($pattern, $flags);
           foreach (glob(dirname($pattern).'/*', GLOB_ONLYDIR|GLOB_NOSORT) as $dir) {
