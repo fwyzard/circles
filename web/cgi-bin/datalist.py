@@ -4,7 +4,7 @@ import sys, os, os.path, glob, fnmatch
 
 print "Content-Type: text/javascript;charset=utf-8\n"
 
-// from https://stackoverflow.com/a/2186673/2050986
+# from https://stackoverflow.com/a/2186673/2050986
 def find_files(directory, pattern):
     for root, dirs, files in os.walk(directory):
         for basename in files:
