@@ -532,12 +532,15 @@
         }
 
         // add the module and its resource to the group
-        data.groups.push({ "label": module.label, "weight": module[config.resource] })
+        data.groups.push({ "label": module.label, "weight": module[config.resource], "events": module.events })
         data.weight += module[config.resource];
       }
 
       function normalise(data, events) {
         data.weight /= events;
+        if ("events" in data) {
+          data.events /= events;
+        }
         if ("groups" in data) {
           for (group of data.groups) {
             normalise(group, events);
@@ -625,11 +628,53 @@
       });
     </script>
 
+    <!-- show this tool's logo in the upper left corner -->
     <div id="logo" style="position: absolute; top: 32px; left: 32px; z-index: 999;">
       <a href="https://github.com/fwyzard/circles">
         <img src="images/pie.png" width="72" height="72"/>
       </a>
     </div>
+
+    <!-- show a tootip when the mouse is hovering over one of the slices -->
+    <style>
+      .tooltip {
+          position: absolute;
+          top: 400px;
+          left: 200px;
+          visibility: hidden;
+          background: #646464;
+          border-radius:4px;
+          padding: 6px 12px;
+          font-family: arial;
+          font-size: 16px;
+          text-shadow: 0px 1px 1px #000;
+          color: #ffffff;
+      }
+    </style>
+
+    <div id="tooltip" class="tooltip">Tooltip</div>
+
+    <script>
+      var tooltip = document.getElementById("tooltip");
+
+      circles.set("onGroupHover", function(hover) {
+        if (hover.group) {
+          tooltip.innerHTML = hover.group.label + "<br>" + hover.group.weight.toFixed(1) + " ms";
+          if ("events" in hover.group) {
+            tooltip.innerHTML += "<br>" + (hover.group.events * 100.).toFixed(1) + "% events";
+          }
+          tooltip.style.visibility = "visible";
+        } else {
+          tooltip.innerHTML = null;
+          tooltip.style.visibility = "hidden";
+        }
+      });
+
+      document.onmousemove = function(event) {
+        tooltip.style.top = (event.pageY + 16) + "px";
+        tooltip.style.left = event.pageX + "px";
+      }
+    </script>
 
   </body>
 </html>
