@@ -171,3 +171,11 @@ The groups and colour scheme to use can be specified via the `-g` and `-c` optio
 ```bash
 ./scripts/dot_colour.py -g hlt -c default dependency.dot > coloured.dot
 ```
+
+## Finding unassigned entries
+
+The script `find_unassigned.py` can be used to find all entries `module type|module label`
+in a JSON file that are not assigned to any group:
+```bash
+./scripts/find_unassigned.py resurces.json
+```

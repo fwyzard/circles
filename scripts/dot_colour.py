@@ -27,7 +27,7 @@ groups = []
 coloursmap = {}
 colours = {}
 
-def populate_available_groups_and_colours():
+def populate_choices():
   global groupsmap, coloursmap
   basepath = Path(os.path.dirname(os.path.realpath(__file__))).parent
   groupspath = basepath / 'web' / 'groups'
@@ -64,7 +64,7 @@ def parse_colours():
 
 
 def main():
-  populate_available_groups_and_colours()
+  populate_choices()
   parse_cmdline_args()
   parse_groups()
   parse_colours()
