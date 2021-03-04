@@ -38,7 +38,10 @@
         $file = explode('/', $file);
         unset($file[0]);
         $file = implode('/', $file);
-        return "'" . dirname($file) . "/" . basename($file, ".json") . "'";
+        if (dirname($file) == '.')
+          return "'" . basename($file, ".json") . "'";
+        else
+          return "'" . dirname($file) . "/" . basename($file, ".json") . "'";
       }
 
       // from https://stackoverflow.com/a/17161106/2050986
