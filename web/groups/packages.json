@@ -997,6 +997,7 @@
   "EmptyIOVSource|": "CondCore|Utilities",
   "EmptySimHits|": "FastSimulation|Validation",
   "EmptySource|": "FWCore|Modules",
+  "EndPathStatusInserter|": "FWCore|Framework",
   "EnergyRingsTableProducer|": "PhysicsTools|NanoAOD",
   "EnergyScaleAnalyzer|": "Validation|EcalClusters",
   "EnsembleCalibrationLA|": "CalibTracker|SiStripLorentzAngle",
@@ -2674,6 +2675,7 @@
   "PATHeavyIonProducer|": "PhysicsTools|PatAlgos",
   "PATHemisphereProducer|": "PhysicsTools|PatAlgos",
   "PathStatusFilter|": "FWCore|Modules",
+  "PathStatusInserter|": "FWCore|Framework",
   "PATIsolatedTrackProducer|": "PhysicsTools|PatAlgos",
   "PatJetAnalyzer|": "PhysicsTools|PatExamples",
   "PATJetCleanerForType1MET|": "PhysicsTools|PatUtils",
@@ -3867,6 +3869,7 @@
   "TriggerObjectTableProducer|": "PhysicsTools|NanoAOD",
   "TriggerRatesMonitorClient|": "DQM|HLTEvF",
   "TriggerRatesMonitor|": "DQM|HLTEvF",
+  "TriggerResultInserter|": "FWCore|Framework",
   "TriggerResultsFilterFromDB|": "HLTrigger|HLTfilters",
   "TriggerResultsFilter|": "HLTrigger|HLTfilters",
   "TriggerRulePrefireVetoFilter|": "EventFilter|L1TRawToDigi",
@@ -4006,5 +4009,6 @@
   "ZMuMuMassConstraintParameterFinder|": "Alignment|MillePedeAlignmentAlgorithm",
   "ZtoEEEventSelector|": "DQM|TrackingMonitorSource",
   "ZtoMMEventSelector|": "DQM|TrackingMonitorSource",
-  "ZToMuMuGammaAnalyzer|": "DQMOffline|EGamma"
+  "ZToMuMuGammaAnalyzer|": "DQMOffline|EGamma",
+  "other|other": "other|other"
 }
