@@ -494,14 +494,22 @@
         updatePage();
       }
 
+      unassigned = [];
+
       function findGroup(module) {
+        var assigned = false;
         var group = "Unassigned";
         for ([t, l, g] of current.compiled) {
           if (matchPattern(t, module.type) && matchPattern(l, module.label)) {
+            assigned = true;
             group = g;
             break;
           }
         }
+        if (! assigned) {
+          unassigned.push({ type: module.type, label: module.label });
+        }
+
         return group.split("|");
       }
 
@@ -601,6 +609,10 @@
           var group = findGroup(module);
           group.push(module.type);
           makeOrUpdateGroup(group, module);
+        }
+        if (unassigned.length) {
+          console.log("Unassigned modules:");
+          console.table(unassigned);
         }
         normalise(current.data, current.dataset.total.events);
 
