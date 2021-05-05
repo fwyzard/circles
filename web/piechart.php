@@ -170,7 +170,7 @@
       if (config.colours == null)
         config.colours = "default";
       if (config.groups == null)
-        config.groups = "hlt_cpu";
+        config.groups = "packages";
       config.threshold = 0.;
 
       // Input data to parse and visualise
