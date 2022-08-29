@@ -1,6 +1,7 @@
 {
   "AlCa": "#ff9999",
   "B tagging": "#663300",
+  "DQM": "#a00000",
   "E/Gamma": "#ffee00",
   "ECAL": "#4ddbff",
   "Framework": "#404040",
@@ -21,5 +22,6 @@
   "ECAL on GPU": "#4ddbff",
   "HCAL on GPU": "#b5a642",
 
+  "event setup": "#404040",
   "other": "#ffffff"
 }
