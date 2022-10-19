@@ -15,21 +15,9 @@
     <script src="CarrotSearch/assets/js/carrotsearch.examples.viewport.js"></script>
 
     <!-- jQuery, DataTables, and plugins-->
-    <link rel="stylesheet" type="text/css" href="DataTables-1.10.18/css/jquery.dataTables.min.css"/>
-    <link rel="stylesheet" type="text/css" href="Buttons-1.5.6/css/buttons.dataTables.min.css"/>
-    <link rel="stylesheet" type="text/css" href="FixedColumns-3.2.5/css/fixedColumns.dataTables.min.css"/>
-    <link rel="stylesheet" type="text/css" href="FixedHeader-3.1.4/css/fixedHeader.dataTables.min.css"/>
-    <link rel="stylesheet" type="text/css" href="RowGroup-1.1.0/css/rowGroup.dataTables.min.css"/>
-    <link rel="stylesheet" type="text/css" href="Scroller-2.0.0/css/scroller.dataTables.min.css"/>
-
-    <script type="text/javascript" src="jQuery-3.3.1/jquery-3.3.1.min.js"></script>
-    <script type="text/javascript" src="DataTables-1.10.18/js/jquery.dataTables.min.js"></script>
-    <script type="text/javascript" src="Buttons-1.5.6/js/dataTables.buttons.min.js"></script>
-    <script type="text/javascript" src="Buttons-1.5.6/js/buttons.html5.min.js"></script>
-    <script type="text/javascript" src="FixedColumns-3.2.5/js/dataTables.fixedColumns.min.js"></script>
-    <script type="text/javascript" src="FixedHeader-3.1.4/js/dataTables.fixedHeader.min.js"></script>
-    <script type="text/javascript" src="RowGroup-1.1.0/js/dataTables.rowGroup.min.js"></script>
-    <script type="text/javascript" src="Scroller-2.0.0/js/dataTables.scroller.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="DataTables/datatables.min.css"/>
+    <script type="text/javascript" src="DataTables/datatables.min.js"></script>
+    <script type="text/javascript" src="DataTables/plug-ins/1.12.1/sorting/absolute.js"></script>
 
     <!-- load the available datasets, groups and colour schemes -->
     <script type="text/javascript">
@@ -650,11 +638,15 @@
 
     <script>
       $(document).ready(function() {
+        var sortable_label = $.fn.dataTable.absoluteOrder(
+          { value: "other", position: "bottom" }
+        );
+
         $('#properties').DataTable( {
-          "aoColumns": [
-            { "sClass": "property_label" },
-            { "sClass": "property_value" },
-            { "sClass": "property_value" }
+          "columns": [
+            { "className": "property_label", "type": sortable_label },
+            { "className": "property_value" },
+            { "className": "property_value" }
           ],
           //"info": true,
           "paging": false,
