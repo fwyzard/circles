@@ -21,8 +21,8 @@ def populate_choices():
 def parse_cmdline_args():
   global args
   parser = argparse.ArgumentParser()
-  parser.add_argument("file", type = argparse.FileType('r'), metavar = 'FILE', default = 'dependency.dot', help = "Graphviz .dot file to colorise")
-  parser.add_argument("-g", "--groups", choices = groupsmap, metavar = 'GROUP', default = 'hlt', help = "Modules' groupings: ")
+  parser.add_argument("file", type = argparse.FileType('r'), nargs = '+', metavar = 'FILE', default = 'resources.json', help = "JSON file(s) with the resource usage produced by the FastTimerService")
+  parser.add_argument("-g", "--groups", choices = groupsmap, metavar = 'GROUP', default = 'hlt', help = "Module groupings to check for unassigned modules")
   args = parser.parse_args()
 
 def parse_groups():
@@ -44,13 +44,16 @@ def main():
   parse_cmdline_args()
   parse_groups()
 
-  data = json.loads(args.file.read())
-  for module in data['modules']:
-    for g in groups:
-      if (g[0] is None or g[0].match(module['type'])) and (g[1] is None or g[1].match(module['label'])):
-        break;
-    else:
-      print('{type}|{label}'.format(**module))
+  for input in args.file:
+    data = json.loads(input.read())
+    for module in data['modules']:
+      if module['type'] == "" and module['label'] == "":
+        continue
+      for g in groups:
+        if (g[0] is None or g[0].match(module['type'])) and (g[1] is None or g[1].match(module['label'])):
+          break;
+      else:
+        print('  "{type}|{label}" : "",'.format(**module))
 
 
 if __name__ == "__main__":
