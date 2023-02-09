@@ -22,7 +22,6 @@
   "CAHitNtupletCUDAPhase1|hltPixelTracksCPUOnly": "Pixels",
   "CAHitNtupletCUDAPhase1|hltPixelTracksCUDA": "Pixels|GPU",
   "CAHitNtupletCUDAPhase1|hltPixelTracksGPU": "Pixels|GPU",
-  "CAHitNtupletCUDAPhase1|hltPixelTracksHitQuadruplets": "Pixels|GPU",
   "CAHitNtupletCUDAPhase1|*cpu": "Pixels",
   "CAHitNtupletCUDAPhase1|*cuda": "Pixels|GPU",
   "CAHitNtupletCUDAPhase2|pixelTracksCUDA" : "Pixels|GPU",
