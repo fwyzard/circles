@@ -353,7 +353,7 @@
   "L1TEnergySumFilter|": "L1T",
   "L1TExtCondProducer|": "L1T",
   "L1TGlobalProducer|": "L1T",
-  "L1TGlobalSummary|": "Taus",
+  "L1TGlobalSummary|": "L1T",
   "L1THLTTauMatching|": "Taus",
   "L1TJetFilter|": "L1T",
   "L1TMuonBarrelKalmanStubProducer|": "L1T",
