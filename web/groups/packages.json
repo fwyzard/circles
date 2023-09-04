@@ -4660,5 +4660,6 @@
   "trgMatchedSuperClusterProducer|": "PhysicsTools|TagAndProbe",
   "ttHFGenFilter|": "PhysicsTools|JetMCAlgos",
   "ttbarEventSelector|": "DQM|TrackingMonitorSource",
+  "idle|idle": "idle",
   "other|other": "other|other"
 }

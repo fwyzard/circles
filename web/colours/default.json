@@ -23,5 +23,6 @@
   "HCAL on GPU": "#b5a642",
 
   "event setup": "#404040",
+  "idle": "#e8e8e8",
   "other": "#ffffff"
 }

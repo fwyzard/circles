@@ -664,5 +664,6 @@
   "VertexSelector|": "Vertices",
   "ZdcHitReconstructor|": "ZDC",
   "eventsetup|eventsetup": "event setup",
+  "idle|idle": "idle",
   "other|other": "other|other"
 }
