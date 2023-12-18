@@ -103,6 +103,10 @@
           <b>Colour style</b>
           <select id="colours_menu" name="colours" onchange="updateColours()"></select>
         </div>
+        <div style="display:inline-block;">
+          <input type="checkbox" checked id="show_labels_checkbox" name="show_labels" onchange="updateShowLabels()"></input>
+          <b>Show labels</b>
+        </div>
       </form>
       <hr/>
 
@@ -130,11 +134,12 @@
       // Load the configuration from the URL
       function loadConfigFromURL() {
         var config = {
-          local:     false,
-          dataset:   null,
-          resource:  null,
-          colours:   null,
-          groups:    null
+          local:      false,
+          dataset:    null,
+          resource:   null,
+          colours:    null,
+          groups:     null,
+          show_label: null
         };
         var url = new URL(window.location.href);
         for (key in config) {
@@ -159,6 +164,8 @@
         config.colours = "default";
       if (config.groups == null)
         config.groups = "hlt_cpu";
+      if (config.show_label == null)
+        config.show_label = true;
       config.threshold = 0.;
 
       // Input data to parse and visualise
@@ -166,6 +173,7 @@
         dataset:    null,
         colours:    null,
         groups:     null,
+        show_label: null,
         compiled:   null,
         metric:     null,   // description of the current mteric
         title:      null,   // column title associated to the current metric
@@ -375,6 +383,17 @@
         loadJsonInto(current, "colours", "colours/" + config.colours + ".json", updatePage);
       }
 
+      // Update the configuration with the visibility of the leaf labels
+      function updateShowLabels() {
+        var checkbox = document.getElementById("show_labels_checkbox");
+        var value = checkbox.checked;
+        config.show_labels = value;
+        current.show_labels = value;
+
+        // update the page
+        updatePage();
+      }
+
       // Update the title, URL, history and visualisation based on the current configuration
       function updatePage() {
         var title = (config.local ? "local file" : config.dataset) + " - " + current.metric;
@@ -551,7 +570,10 @@
         }
 
         // add the module and its resource to the group
-        data.groups.push({ "label": module.label, "weight": module[config.resource], "events": module.events })
+        if (current.show_labels || module.label == "other")
+          data.groups.push({ "label": module.label, "weight": module[config.resource], "events": module.events })
+        else
+          data.groups.push({ "label": "", "weight": module[config.resource], "events": module.events })
         data.weight += module[config.resource];
       }
 
