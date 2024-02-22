@@ -134,12 +134,12 @@
       // Load the configuration from the URL
       function loadConfigFromURL() {
         var config = {
-          local:      false,
-          dataset:    null,
-          resource:   null,
-          colours:    null,
-          groups:     null,
-          show_label: null
+          local:       false,
+          dataset:     null,
+          resource:    null,
+          colours:     null,
+          groups:      null,
+          show_labels: null
         };
         var url = new URL(window.location.href);
         for (key in config) {
@@ -163,23 +163,23 @@
       if (config.colours == null)
         config.colours = "default";
       if (config.groups == null)
-        config.groups = "hlt_cpu";
-      if (config.show_label == null)
-        config.show_label = true;
+        config.groups = "hlt";
+      if (config.show_labels == null)
+        config.show_labels = true;
       config.threshold = 0.;
 
       // Input data to parse and visualise
       var current = {
-        dataset:    null,
-        colours:    null,
-        groups:     null,
-        show_label: null,
-        compiled:   null,
-        metric:     null,   // description of the current mteric
-        title:      null,   // column title associated to the current metric
-        unit:       null,   // unit associated to the current metric
-        data:       null,
-        processing: false,  // the new configuration is being processed
+        dataset:     null,
+        colours:     null,
+        groups:      null,
+        show_labels: true,
+        compiled:    null,
+        metric:      null,   // description of the current mteric
+        title:       null,   // column title associated to the current metric
+        unit:        null,   // unit associated to the current metric
+        data:        null,
+        processing:  false,  // the new configuration is being processed
       };
 
       // Circles data view
