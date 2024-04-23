@@ -742,7 +742,7 @@
   "unsortedOfflinePrimaryVertices4Dfastsim": "RecoVertex|Configuration",
   "unsortedOfflinePrimaryVertices4DnoPID": "RecoVertex|Configuration",
   "vertexMerger": "RecoVertex|AdaptiveVertexFinder",
-  "zdcreco": "RecoLocalCalo|HcalRecProducers"
+  "zdcreco": "RecoLocalCalo|HcalRecProducers",
   "idle|idle": "idle",
   "other|other": "other|other"
 }
