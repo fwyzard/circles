@@ -22,12 +22,15 @@
     <!-- load the available datasets, groups and colour schemes -->
     <script type="text/javascript">
     <?php
-      $data_name=basename($_SERVER['SCRIPT_NAME'], ".php");
+      $data_name="data";
+      if (isset($_GET["data_name"]) && preg_match('/^[a-z0-9_-]*$/', $_GET["data_name"])) {
+        $data_name = $_GET["data_name"];
+      }
       $dataset_cache = "${data_name}_dataset.js";
-      if ($data_name == "piechart"){
-        $data_name = "data";
+      if ($data_name == "data"){
         $dataset_cache = "dataset.js";
       }
+
       function preformat($file) {
         $file = explode('/', $file);
         unset($file[0]);
@@ -51,7 +54,7 @@
         print(file_get_contents($dataset_cache));
       }
       else {
-        print("var data_name = $data_name;\n");
+        print("var data_name = $data_name;");
         print("var datasets = [ " . join(", ", array_map("preformat", rglob($data_name."/*.json"))) . " ];\n");
         print("var groups = [ " . join(", ", array_map("preformat", glob("groups/*.json"))) . " ];\n");
         print("var colours = [ " . join(", ", array_map("preformat", glob("colours/*.json"))) . " ];\n");
@@ -152,11 +155,15 @@
           colours:     null,
           groups:      null,
           filter:      null,
+          data_name:   null,
           show_labels: null
         };
         var url = new URL(window.location.href);
         for (key in config) {
           config[key] = url.searchParams.get(key);
+        }
+        if (config["data_name"] == null){
+          config["data_name"] = data_name;
         }
         return config;
       }
@@ -321,7 +328,7 @@
         config.local = false;
 
         // Load the selected dataset, and the associated resource metrics
-        loadJsonInto(current, "dataset", data_name + "/" + config.dataset + ".json", loadAvailableMetrics);
+        loadJsonInto(current, "dataset", config.data_name + "/" + config.dataset + ".json", loadAvailableMetrics);
       }
 
       // Upload a JSON file
