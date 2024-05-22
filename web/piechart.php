@@ -22,6 +22,12 @@
     <!-- load the available datasets, groups and colour schemes -->
     <script type="text/javascript">
     <?php
+      $data_name=basename($_SERVER['SCRIPT_NAME'], ".php");
+      $dataset_cache = "${data_name}_dataset.js";
+      if ($data_name == "piechart"){
+        $data_name = "data";
+        $dataset_cache = "dataset.js";
+      }
       function preformat($file) {
         $file = explode('/', $file);
         unset($file[0]);
@@ -41,9 +47,15 @@
           }
           return $files;
       }
-      print("var datasets = [ " . join(", ", array_map("preformat", rglob("data/*.json"))) . " ];\n");
-      print("var groups = [ " . join(", ", array_map("preformat", glob("groups/*.json"))) . " ];\n");
-      print("var colours = [ " . join(", ", array_map("preformat", glob("colours/*.json"))) . " ];\n");
+      if (file_exists($dataset_cache)){
+        print(file_get_contents($dataset_cache));
+      }
+      else {
+        print("var data_name = $data_name;\n");
+        print("var datasets = [ " . join(", ", array_map("preformat", rglob($data_name."/*.json"))) . " ];\n");
+        print("var groups = [ " . join(", ", array_map("preformat", glob("groups/*.json"))) . " ];\n");
+        print("var colours = [ " . join(", ", array_map("preformat", glob("colours/*.json"))) . " ];\n");
+      }
     ?>
     </script>
 
@@ -139,6 +151,7 @@
           resource:    null,
           colours:     null,
           groups:      null,
+          filter:      null,
           show_labels: null
         };
         var url = new URL(window.location.href);
@@ -281,13 +294,15 @@
       function loadAvailableDatasets() {
         var menu = document.getElementById("dataset_menu");
         for (var i = 0; i < datasets.length; i++) {
+          if ((config.filter != null) && (! datasets[i].includes(config.filter))){
+            continue;
+          }
           var entry = document.createElement("option");
           entry.text = datasets[i];
           entry.value = datasets[i];
           menu.options.add(entry);
           if (datasets[i] == config.dataset) {
-            // + 1 because of the disabled entry at the top
-            menu.selectedIndex = i + 1;
+            menu.selectedIndex = menu.options.length-1;
           }
         }
 
@@ -306,7 +321,7 @@
         config.local = false;
 
         // Load the selected dataset, and the associated resource metrics
-        loadJsonInto(current, "dataset", "data/" + config.dataset + ".json", loadAvailableMetrics);
+        loadJsonInto(current, "dataset", data_name + "/" + config.dataset + ".json", loadAvailableMetrics);
       }
 
       // Upload a JSON file
