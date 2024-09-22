@@ -13,6 +13,7 @@ def parse_arguments():
     parser.add_argument('--metric', choices=['mem_alloc', 'mem_free', 'time_real', 'time_thread', 'time_real_abs', 'time_thread_abs'], default='time_real', help="Quantity to aggregate. Valid values are 'mem_alloc', 'mem_free', 'time_real', 'time_thread', 'time_real_abs', 'time_thread_abs'")
     parser.add_argument('--limit', type=int, default=999, help='Maximum number of items to be printed to the terminal.')
     parser.add_argument('--debug', action="store_true", help='Enable debugging printouts.')
+    parser.add_argument('--markdown', action="store_true", help='Format the output as a Markdown table.')
     parser.add_argument('--filter', type=str, default='.*', help='Regular expression that is used to filter the output results.')
 
     return parser.parse_args()
@@ -113,7 +114,7 @@ def main():
     augmented_data = augment_json(input_data, group_data, args.debug)
 
     # Aggregate the data based on the provided level and group_by_keys
-    aggregated_data = aggregate_data(input_data, args.metric, args.level, args.filter)
+    aggregated_data = aggregate_data(augmented_data, args.metric, args.level, args.filter)
 
     # Flatten the aggregated data
     flat_data = flatten_dict(aggregated_data)
@@ -129,7 +130,12 @@ def main():
     # Print the results
     for key, value in limited_data:
         norm_value = value *input_data['total']['events'] / input_data['total'][args.metric] * 100.
-        print(f"{key}: {value:.2f} {norm_value:.2f}%")
+        if not args.markdown:
+            print(f"{key}: {value:.2f} {norm_value:.2f}%")
+        else:
+            markdown_key = key.replace('|','/')
+            print(f"| {markdown_key} | {value:.2f} | {norm_value:.2f}% |")
+
 
 if __name__ == "__main__":
     main()
