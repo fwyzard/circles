@@ -1,12 +1,12 @@
 import argparse
 import json
-from collections import defaultdict
 import re
+from rich.console import Console
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process and aggregate JSON data based on input parameters.")
 
-    parser.add_argument('--input-file', required=True, help='Path to the input JSON file to be read.')
+    parser.add_argument('--input-files', required=True, help='Path to the input JSON files to be read, comma separated.')
     parser.add_argument('--group-file', required=True, help='Path to the JSON file responsible for grouping.')
     parser.add_argument('--level', type=int, default=1, help='Level at which data aggregation should stop.')
     parser.add_argument('--sort', choices=['a', 'd'], default='d', help="Sort order: 'a' for ascending, 'd' for descending.")
@@ -14,7 +14,11 @@ def parse_arguments():
     parser.add_argument('--limit', type=int, default=999, help='Maximum number of items to be printed to the terminal.')
     parser.add_argument('--debug', action="store_true", help='Enable debugging printouts.')
     parser.add_argument('--markdown', action="store_true", help='Format the output as a Markdown table.')
+    parser.add_argument('--latex', action="store_true", help='Format the output as a latex table.')
     parser.add_argument('--filter', type=str, default='.*', help='Regular expression that is used to filter the output results.')
+    parser.add_argument('--cutoff', type=float, default=-1., help='Cutoff to be applied to the relative fraction of each selected components to be printed on the terminal.')
+    parser.add_argument('--dropfirst', type=int, default=-1., help='Drop the first specified elements from the full path of the modules.')
+    parser.add_argument('--alert', type=float, default=5, help='Alert threshold, in percetage, to be used to highlight differences between the two input files.')
 
     return parser.parse_args()
 
@@ -64,7 +68,7 @@ def aggregate_data(input_data, metric, level, filter):
 
     try:
         re_filter = re.compile(filter)
-    except Exception as e:
+    except Exception as _:
         print("Failed to compile the supplied Regular expression {}".format(filter))
         re_filter = re.compile(".*")
 
@@ -108,33 +112,116 @@ def main():
     args = parse_arguments()
 
     # Load input data and group data
-    input_data = load_json(args.input_file)
+    # Split the comma-separated list of file names into a list
     group_data = load_json(args.group_file)
+    input_data = []
+    augmented_data = []
+    aggregated_data = []
+    flat_data = []
+    limited_data = []
+    file_list = args.input_files.split(',')
+    if len(file_list) > 2:
+        print("Only two input files are supported at the moment.")
+        return
+    for file in file_list:
+        input_data.append(load_json(file))
 
-    augmented_data = augment_json(input_data, group_data, args.debug)
+        augmented_data.append(augment_json(input_data[-1], group_data, args.debug))
 
-    # Aggregate the data based on the provided level and group_by_keys
-    aggregated_data = aggregate_data(augmented_data, args.metric, args.level, args.filter)
+        # Aggregate the data based on the provided level and group_by_keys
+        aggregated_data.append(aggregate_data(augmented_data[-1], args.metric, args.level, args.filter))
 
-    # Flatten the aggregated data
-    flat_data = flatten_dict(aggregated_data)
+        # Flatten the aggregated data
+        flat_data.append(flatten_dict(aggregated_data[-1]))
 
-    # Sort the data based on the second element of the tuple
-    flat_data.sort(key=lambda x: x[1], reverse=(args.sort == 'd'))
+        # Sort the data based on the second element of the tuple
+        flat_data[-1].sort(key=lambda x: x[1], reverse=(args.sort == 'd'))
 
-    # Limit the output
-    limited_data = flat_data[:args.limit]
+        # Limit the output
+        limited_data.append(flat_data[-1][:args.limit])
 
     print_infos(args)
 
-    # Print the results
-    for key, value in limited_data:
-        norm_value = value *input_data['total']['events'] / input_data['total'][args.metric] * 100.
-        if not args.markdown:
-            print(f"{key}: {value:.2f} {norm_value:.2f}%")
+    if len(input_data) == 1:
+        # Print the results separatly for the two input files
+        for i in range(len(input_data)):
+            everything_else = 100
+            print(f"\n {i} " + file_list[i])
+            for key, value in limited_data[i]:
+                norm_value = value *input_data[i]['total']['events'] / input_data[i]['total'][args.metric] * 100.
+                if args.cutoff != -1 and norm_value < args.cutoff:
+                    break
+                everything_else -= norm_value
+                if args.markdown:
+                    markdown_key = key.replace('|',' - ')
+                    if args.dropfirst > 0:
+                        markdown_key = ' - '.join(markdown_key.split(' - ')[args.dropfirst:])
+                    print(f"| {markdown_key} | {value:.2f} | {norm_value:.2f}% |")
+                elif args.latex:
+                    latex_key = key.replace('|',' - ')
+                    if args.dropfirst > 0:
+                        latex_key = ' - '.join(latex_key.split(' - ')[args.dropfirst:])
+                    print(f"{latex_key} & {value:.2f} & {norm_value:.2f}\% \\tabularnewline")
+                else:
+                    print(f"{key}: {value:.2f} {norm_value:.2f}%")
+            print(f"Everything else: {everything_else:.2f}%")
+
+    if len(input_data) != 2:
+        return
+    # Print common keys first.
+    # Loop on the first file and print exclusive keys.
+    # Loop on the second file and print exclusive keys.
+    #
+    # Find common keys
+    # Create a console that forces terminal
+    console = Console(force_terminal=True)
+    print("\nCOMPARISONS\n")
+    for i,f in enumerate(file_list):
+        console.print(f"[bold red]{i}[/] [bold yellow]{f}[/]")
+    common_keys = dict(limited_data[0]).keys() & dict(limited_data[1]).keys()
+    sorted_common_keys = sorted(common_keys, key=lambda k: dict(flat_data[0])[k], reverse=(args.sort == 'd'))
+    for key in sorted_common_keys:
+        value = dict(limited_data[0])[key]
+        norm_value = value * input_data[0]['total']['events'] / input_data[0]['total'][args.metric] * 100.
+        value2 = dict(limited_data[1])[key]
+        norm_value2 = value2 * input_data[1]['total']['events'] / input_data[1]['total'][args.metric] * 100.
+        if args.cutoff != -1 and (norm_value < args.cutoff or norm_value2 < args.cutoff):
+            break
+        if args.markdown:
+            markdown_key = key.replace('|',' - ')
+            if args.dropfirst > 0:
+                markdown_key = ' - '.join(markdown_key.split(' - ')[args.dropfirst:])
+            print(f"| {markdown_key} | {value:.2f} | {norm_value:.2f}% | {value2:.2f} | {norm_value2:.2f}% |")
+        elif args.latex:
+            latex_key = key.replace('|',' - ')
+            if args.dropfirst > 0:
+                latex_key = ' - '.join(latex_key.split(' - ')[args.dropfirst:])
+            print(f"{latex_key} & {value:.2f} & {norm_value:.2f}\% & {value2:.2f} & {norm_value2:.2f}\% \\tabularnewline")
         else:
-            markdown_key = key.replace('|','/')
-            print(f"| {markdown_key} | {value:.2f} | {norm_value:.2f}% |")
+            alert = False
+            if norm_value2 != 0:
+                alert = abs(norm_value-norm_value2)/norm_value2 > args.alert
+            color = "bold red" if alert else "green"
+            console.print(f"[orange]{key}[/]\t{value:.2f}\t[{color}]{norm_value:.2f}%[/]\t{value2:.2f}\t[{color}]{norm_value2:.2f}%[/]")
+    for i in range(len(input_data)):
+        for key, value in limited_data[i]:
+            if key in common_keys:
+                continue
+            norm_value = value *input_data[i]['total']['events'] / input_data[i]['total'][args.metric] * 100.
+            if args.cutoff != -1 and norm_value < args.cutoff:
+                break
+            if args.markdown:
+                markdown_key = key.replace('|',' - ')
+                if args.dropfirst > 0:
+                    markdown_key = ' - '.join(markdown_key.split(' - ')[args.dropfirst:])
+                print(f"| {i} | {markdown_key} | {value:.2f} | {norm_value:.2f}% |")
+            elif args.latex:
+                latex_key = key.replace('|',' - ')
+                if args.dropfirst > 0:
+                    latex_key = ' - '.join(latex_key.split(' - ')[args.dropfirst:])
+                print(f"{i} & {latex_key} & {value:.2f} & {norm_value:.2f}\% \\tabularnewline")
+            else:
+                print(f"{i} {key}: {value:.2f} {norm_value:.2f}%")
 
 
 if __name__ == "__main__":
