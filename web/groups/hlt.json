@@ -291,7 +291,7 @@
   "HLTHGCalRecHitsInRegionsProducer|hltRechitInRegionsHGCAL": "E/Gamma",
   "HLTHGCalRecHitsInRegionsProducer|": "HGCal",
   "HGCalSoARecHitsProducer@alpaka|": "HGCal|Alpaka",
-  "HGCalLayerClustersFromSoAProducer|": "HGCal|Alpaka",
+  "HGCalLayerClustersFromSoAProducer|": "HGCal|Conversion",
   "HGCalSoALayerClustersProducer@alpaka|": "HGCal|Alpaka",
   "HGCalSoARecHitsLayerClustersProducer@alpaka|": "HGCal|Alpaka",
   "MergeClusterProducer|hltHgcalMergeLayerClusters*": "HGCal",
