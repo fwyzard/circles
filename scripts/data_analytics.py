@@ -1,6 +1,7 @@
 import argparse
 import json
 import re
+from collections import defaultdict
 from rich.console import Console
 
 def parse_arguments():
@@ -17,8 +18,10 @@ def parse_arguments():
     parser.add_argument('--latex', action="store_true", help='Format the output as a latex table.')
     parser.add_argument('--filter', type=str, default='.*', help='Regular expression that is used to filter the output results.')
     parser.add_argument('--cutoff', type=float, default=-1., help='Cutoff to be applied to the relative fraction of each selected components to be printed on the terminal.')
-    parser.add_argument('--dropfirst', type=int, default=-1., help='Drop the first specified elements from the full path of the modules.')
+    parser.add_argument('--latexcutoff', type=float, default=-1., help='Cutoff to be applied to the relative fraction of each selected components to be printed on aggregate latex tables.')
+    parser.add_argument('--dropfirst', type=int, default=0, help='Drop the first specified elements from the full path of the modules.')
     parser.add_argument('--alert', type=float, default=5, help='Alert threshold, in percetage, to be used to highlight differences between the two input files.')
+    parser.add_argument('--aggregate', action="store_true", default=False, help='Aggregate the filtered data in a hierarchical representation. This options only works when --latex is enabled.')
 
     return parser.parse_args()
 
@@ -33,7 +36,7 @@ def augment_json(input_data, group_data, debug):
     each element, named 'expanded', that will combine the information coming
     from the input json and from the grouping json. All modules that cannot be
     found in the original group_data will be assigned to the macro package
-    "Unassigned".
+    "Unassigned". The separator between the different fields is '|'.
     """
 
     groups = []
@@ -61,7 +64,7 @@ def augment_json(input_data, group_data, debug):
 
     return input_data
 
-def aggregate_data(input_data, metric, level, filter):
+def aggregate_data(input_data, metric, level, filter, dropfirst=0):
     """
     Aggregate the data in the original json according to the command line arguments supplied.
     """
@@ -75,7 +78,7 @@ def aggregate_data(input_data, metric, level, filter):
     result = {}
     for module in input_data['modules']:
         if re_filter.match(module['expanded']):
-            key = '|'.join(module['expanded'].split('|')[:level])
+            key = '|'.join(module['expanded'].split('|')[dropfirst:level])
             if not key in result.keys():
                 result[key] = 0.
             result[key] += module[metric]/input_data['total']['events']
@@ -97,6 +100,116 @@ def flatten_dict(data):
             return [(parent_key, current_data)]
 
     return flatten(data)
+
+def update_dict(d, keys, value):
+    """
+    Function to recursively update a nested dictionary with the parsed values.
+    keys is a list of strings that represents the sequence of nested keys to be
+    added to the dictionary d. The input dictionary d is updated in place.
+    Value could be either a single value or a tuple with 2 elements: the time
+    of the module and its global fraction.
+    """
+    current = d
+    for key in keys[:-1]:
+        if key in current.keys():
+            current[key]["count"] = current[key]["count"] + 1
+            current = current[key]
+        else:
+            current = current.setdefault(key, {"count": 1})
+    if isinstance(value, int):
+        current[keys[-1]] = current.get(keys[-1], 0) + value
+    if isinstance(value, list):
+        current[keys[-1]] = current.get(keys[-1], [0, 0])
+        current[keys[-1]][0] += value[0]
+        current[keys[-1]][1] += value[1]
+
+def compute_sum(d):
+    """
+    Function to compute the sum of all values at each level, including children.
+    This function assumed the input dictionary d is a nested dictionary whose
+    value is a list of variable elements.
+    """
+    total_sum = []
+    if isinstance(d, list):
+        return d
+    for _, value in d.items():
+        if isinstance(value, dict):
+            # Recursively compute the sum for nested dictionaries
+            sub_sum = compute_sum(value)
+            for v in range(len(sub_sum)):
+                if len(total_sum) <= v:
+                    total_sum.append(0)
+                total_sum[v] += sub_sum[v]
+        elif isinstance(value, list):
+            for i, v in enumerate(value):
+                if len(total_sum) <= i:
+                    total_sum.append(0)
+                total_sum[i] += v
+    return total_sum
+
+def print_latex_table(data, used_keys, level, cutoff, debug=False):
+    """
+    Function to print a latex table with the aggregated data. The table will
+    group modules using \\multirow. The numbers and fractions computed are
+    cumulative and have no cutoff applied. The number of rows printed is
+    limited by the command line option latexcutoff.
+    """
+    def recurse_print_table(data, used_keys, prepend = "", level=0, cutoff=-1):
+        if debug:
+            print(f"LEVEL {level}\tUSED_KEYS: {used_keys}\tPREPEND: {prepend}\tDATA: {data}")
+        if isinstance(data, dict):
+            for i, key in enumerate([k for k in data.keys() if k != "count"]):
+                total_sum = compute_sum(data[key])
+                if isinstance(data[key], dict):
+                    to_be_prepended = prepend + "\\multirow[t]{{{}}}{{*}}{{{} [{:.1f}\\%] }} & ".format(data[key]["count"], key, total_sum[1])
+                    recurse_print_table(data[key], used_keys, to_be_prepended, level+1, cutoff)
+                else:
+                    if debug:
+                        print(f"{level} {i} {prepend} {key} & {data[key]} \\\\")
+                    if data[key][1] < cutoff:
+                        continue
+                    row = f"{prepend} {key} & {data[key][0]:.1f} & {data[key][1]:.1f}\\% \\\\"
+                    if i == 0:
+                        cols = row.split('&')
+                        if debug:
+                            print(f"{row}")
+                        for c in range(level):
+                            real_key = f"{cols[c]}_{c}"
+                            if real_key in used_keys:
+                                cols[c] = " "
+                            else:
+                                update_dict(used_keys, [real_key], c)
+                        print("&".join(cols))
+                    else:
+                        cols = row.split('&')
+                        for c in range(level):
+                            real_key = f"{cols[c]}_{c}"
+                            if real_key in used_keys:
+                                cols[c] = " "
+                        print("&".join(cols))
+
+        return
+
+    used_keys = defaultdict(lambda: defaultdict(dict))
+    cols = ""
+    header = ""
+    for _ in range(level+2):
+        cols += "l"
+    print(f"\\begin{{table}}[!htbp]")
+    print("\\resizebox{\\textwidth}{!}{%")
+    print(f"\\begin{{tabular}}{{{cols}}}")
+    print(r"\toprule")
+    for _ in range(level):
+        header += "\\textbf{Module} & "
+    header += "\\textbf{Time} & \\textbf{Fraction} \\\\"
+    print(f"{header}")
+    print(r"\midrule")
+    recurse_print_table(data, used_keys, "", 0, cutoff)
+
+    print(r"\bottomrule")
+    print(r"\end{tabular}")
+    print("} % close resizebox")
+    print(f"\\end{{table}}")
 
 def print_infos(args):
     """
@@ -129,7 +242,7 @@ def main():
         augmented_data.append(augment_json(input_data[-1], group_data, args.debug))
 
         # Aggregate the data based on the provided level and group_by_keys
-        aggregated_data.append(aggregate_data(augmented_data[-1], args.metric, args.level, args.filter))
+        aggregated_data.append(aggregate_data(augmented_data[-1], args.metric, args.level, args.filter, args.dropfirst))
 
         # Flatten the aggregated data
         flat_data.append(flatten_dict(aggregated_data[-1]))
@@ -143,7 +256,10 @@ def main():
     print_infos(args)
 
     if len(input_data) == 1:
-        # Print the results separatly for the two input files
+        hierarchical_data = None
+        if args.aggregate:
+            # Create a nested dictionary to hold the aggregated data
+            hierarchical_data = defaultdict(lambda: defaultdict(dict))
         for i in range(len(input_data)):
             everything_else = 100
             print(f"\n {i} " + file_list[i])
@@ -154,17 +270,25 @@ def main():
                 everything_else -= norm_value
                 if args.markdown:
                     markdown_key = key.replace('|',' - ')
-                    if args.dropfirst > 0:
-                        markdown_key = ' - '.join(markdown_key.split(' - ')[args.dropfirst:])
                     print(f"| {markdown_key} | {value:.2f} | {norm_value:.2f}% |")
                 elif args.latex:
-                    latex_key = key.replace('|',' - ')
-                    if args.dropfirst > 0:
-                        latex_key = ' - '.join(latex_key.split(' - ')[args.dropfirst:])
-                    print(f"{latex_key} & {value:.2f} & {norm_value:.2f}\% \\tabularnewline")
+                    if args.aggregate:
+                        # Update the nested dictionary with the parsed value
+                        # Since this implies an aggregation of the data, this
+                        # operation happens in 2 steps. In this first pass we
+                        # collect all inputs. In a later iteration, we will
+                        # print the final aggregated data.
+                        update_dict(hierarchical_data, key.split('|'), [value, norm_value])
+                    else:
+                        latex_key = key.replace('|',' - ')
+                        print(f"{latex_key} & {value:.1f} & {norm_value:.1f}\% \\tabularnewline")
                 else:
-                    print(f"{key}: {value:.2f} {norm_value:.2f}%")
-            print(f"Everything else: {everything_else:.2f}%")
+                    print(f"{key}: {value:.1f} {norm_value:.1f}%")
+            print(f"Everything else: {everything_else:.1f}%")
+            if args.aggregate:
+                if args.debug:
+                    print(f"LIMITED_DATA: {limited_data}")
+                print_latex_table(hierarchical_data, dict(), args.level, args.latexcutoff)
 
     if len(input_data) != 2:
         return
