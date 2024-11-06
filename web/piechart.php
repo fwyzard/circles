@@ -349,7 +349,10 @@
         var index = menu.selectedIndex;
         config.resource = menu.options[index].value;
         current.metric = menu.options[index].text
-        if (config.resource.startsWith("time_")) {
+        if (config.resource.endsWith("_hs23")) {
+          current.unit = " HS23/Hz";
+          current.title = "Capacity";
+        } else if (config.resource.startsWith("time_")) {
           current.unit = " ms";
           current.title = "Time";
         } else if (config.resource.startsWith("mem_")) {
