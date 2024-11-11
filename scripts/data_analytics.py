@@ -3,6 +3,14 @@ import json
 import re
 from collections import defaultdict
 from rich.console import Console
+from pprint import pprint
+
+METRICS = ['mem_alloc', 'mem_free',
+           'time_real', 'time_thread',
+           'time_real_abs', 'time_thread_abs',
+           'hs23_time_real', 'hs23_time_thread',
+           'hs23_time_real_abs', 'hs23_time_thread_abs'
+           ]
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process and aggregate JSON data based on input parameters.")
@@ -11,7 +19,7 @@ def parse_arguments():
     parser.add_argument('--group-file', required=True, help='Path to the JSON file responsible for grouping.')
     parser.add_argument('--level', type=int, default=1, help='Level at which data aggregation should stop.')
     parser.add_argument('--sort', choices=['a', 'd'], default='d', help="Sort order: 'a' for ascending, 'd' for descending.")
-    parser.add_argument('--metric', choices=['mem_alloc', 'mem_free', 'time_real', 'time_thread', 'time_real_abs', 'time_thread_abs'], default='time_real', help="Quantity to aggregate. Valid values are 'mem_alloc', 'mem_free', 'time_real', 'time_thread', 'time_real_abs', 'time_thread_abs'")
+    parser.add_argument('--metric', choices=METRICS, default='time_real', help="Quantity to aggregate. Valid values are 'mem_alloc', 'mem_free', 'time_real', 'time_thread', 'time_real_abs', 'time_thread_abs'")
     parser.add_argument('--limit', type=int, default=999, help='Maximum number of items to be printed to the terminal.')
     parser.add_argument('--debug', action="store_true", help='Enable debugging printouts.')
     parser.add_argument('--markdown', action="store_true", help='Format the output as a Markdown table.')
@@ -101,13 +109,16 @@ def flatten_dict(data):
 
     return flatten(data)
 
-def update_dict(d, keys, value):
+def update_dict(d, keys, value, cutoff=0):
     """
     Function to recursively update a nested dictionary with the parsed values.
     keys is a list of strings that represents the sequence of nested keys to be
     added to the dictionary d. The input dictionary d is updated in place.
     Value could be either a single value or a tuple with 2 elements: the time
     of the module and its global fraction.
+    If a cutfoff greater than 0 is provided, the count counter is not
+    incremented, to be coherent with the possible multirow output of LaTeX
+    tables.
     """
     current = d
     for key in keys[:-1]:
@@ -122,6 +133,12 @@ def update_dict(d, keys, value):
         current[keys[-1]] = current.get(keys[-1], [0, 0])
         current[keys[-1]][0] += value[0]
         current[keys[-1]][1] += value[1]
+        current = d
+        if cutoff > 0 and value[1] < cutoff:
+            for key in keys[:-1]:
+                if key in current.keys():
+                    current[key]["count"] = current[key]["count"] - 1
+                    current = current[key]
 
 def compute_sum(d):
     """
@@ -147,7 +164,7 @@ def compute_sum(d):
                 total_sum[i] += v
     return total_sum
 
-def print_latex_table(data, used_keys, level, cutoff, debug=False):
+def print_latex_table(data, used_keys, metric, level, cutoff, debug=False):
     """
     Function to print a latex table with the aggregated data. The table will
     group modules using \\multirow. The numbers and fractions computed are
@@ -191,6 +208,13 @@ def print_latex_table(data, used_keys, level, cutoff, debug=False):
         return
 
     used_keys = defaultdict(lambda: defaultdict(dict))
+    metric_label = ""
+    if metric.startswith("time_"):
+        metric_label = "Time"
+    elif metric.startswith("mem_"):
+        metric_label = "Memory"
+    elif metric.startswith("hs23_"):
+        metric_label = "\\unit{\\HS/\\hertz}"
     cols = ""
     header = ""
     for _ in range(level+2):
@@ -201,7 +225,7 @@ def print_latex_table(data, used_keys, level, cutoff, debug=False):
     print(r"\toprule")
     for _ in range(level):
         header += "\\textbf{Module} & "
-    header += "\\textbf{Time} & \\textbf{Fraction} \\\\"
+    header += f"{metric_label} & \\textbf{{Fraction}} \\\\"
     print(f"{header}")
     print(r"\midrule")
     recurse_print_table(data, used_keys, "", 0, cutoff)
@@ -278,7 +302,11 @@ def main():
                         # operation happens in 2 steps. In this first pass we
                         # collect all inputs. In a later iteration, we will
                         # print the final aggregated data.
-                        update_dict(hierarchical_data, key.split('|'), [value, norm_value])
+                        if args.debug:
+                            pprint(f"Adding key: {key} with value {value} and norm_value {norm_value}")
+                        update_dict(hierarchical_data, key.split('|'), [value, norm_value], args.latexcutoff)
+                        if args.debug:
+                            pprint(hierarchical_data)
                     else:
                         latex_key = key.replace('|',' - ')
                         print(f"{latex_key} & {value:.1f} & {norm_value:.1f}\% \\tabularnewline")
@@ -288,7 +316,7 @@ def main():
             if args.aggregate:
                 if args.debug:
                     print(f"LIMITED_DATA: {limited_data}")
-                print_latex_table(hierarchical_data, dict(), args.level, args.latexcutoff)
+                print_latex_table(hierarchical_data, dict(), args.metric, args.level, args.latexcutoff)
 
     if len(input_data) != 2:
         return
