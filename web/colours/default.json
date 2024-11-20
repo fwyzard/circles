@@ -14,14 +14,18 @@
   "Muons": "#0040ff",
   "Particle Flow": "#ff66cc",
   "Pixels": "#33ff33",
+  "Pixel track and vertex": "#33ff33",
   "Taus": "#800055",
   "Tracking": "#009900",
+  "Full track and vertex": "#009900",
   "Vertices": "#006600",
 
   "Pixels on GPU": "#33ff33",
   "ECAL on GPU": "#4ddbff",
   "HCAL on GPU": "#b5a642",
 
+  "others": "#cccccc",
+  "non-event processing": "#808080",
   "event setup": "#404040",
   "idle": "#e8e8e8",
   "other": "#ffffff"
