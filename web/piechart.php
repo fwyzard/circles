@@ -210,6 +210,12 @@
 
         circles.set("groupColorDecorator", groupColorDecorator);
         circles.set("isGroupVisible", circlesVisibilityDecorator);
+        //circles.set("groupSelectionColor", "#babdb633");
+        circles.set("groupSelectionColor", "#cc000022");
+        circles.set("groupSelectionOutlineColor", "#cc0000aa");
+        circles.set("groupSelectionOutlineWidth", 4);
+        circles.set("groupSelectionOutlineStyle", "none"); // unused
+
 
         circles.set("titleBarLabelDecorator", function(attrs) {
           var table = $('#properties').DataTable();
@@ -446,7 +452,7 @@
 
       // Compile a pattern
       //  - an empty pattern "" compiles to a null object, and matches anything
-      //  - a literal pattern "module" compiles to a string object 
+      //  - a literal pattern "module" compiles to a string object
       //  - a glob pattern "module*" compiles to a regex object /^module.*$/
       function compilePattern(pattern) {
         // empty string, return a null object
@@ -598,7 +604,7 @@
           return;
         }
 
-        // Do not draw if the configuration has been updated 
+        // Do not draw if the configuration has been updated
         if (current.processing) {
           return;
         }
@@ -651,7 +657,7 @@
       // load the colour scheme
       loadJsonInto(current, "colours", "colours/" + config.colours + ".json", function(){});
 
-      // load the available datasets, and the resources actually available from the dataset 
+      // load the available datasets, and the resources actually available from the dataset
       loadAvailableDatasets();
 
       // load the available groups and colours
