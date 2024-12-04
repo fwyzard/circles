@@ -54,7 +54,7 @@
         print(file_get_contents($dataset_cache));
       }
       else {
-        print("var data_name = $data_name;");
+        print("var data_name = \"$data_name\";");
         print("var datasets = [ " . join(", ", array_map("preformat", rglob($data_name."/*.json"))) . " ];\n");
         print("var groups = [ " . join(", ", array_map("preformat", glob("groups/*.json"))) . " ];\n");
         print("var colours = [ " . join(", ", array_map("preformat", glob("colours/*.json"))) . " ];\n");
