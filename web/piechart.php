@@ -22,6 +22,15 @@
     <!-- load the available datasets, groups and colour schemes -->
     <script type="text/javascript">
     <?php
+      $data_name="data";
+      if (isset($_GET["data_name"]) && preg_match('/^[a-z0-9_-]*$/', $_GET["data_name"])) {
+        $data_name = $_GET["data_name"];
+      }
+      $dataset_cache = "${data_name}_dataset.js";
+      if ($data_name == "data"){
+        $dataset_cache = "dataset.js";
+      }
+
       function preformat($file) {
         $file = explode('/', $file);
         unset($file[0]);
@@ -41,9 +50,15 @@
           }
           return $files;
       }
-      print("var datasets = [ " . join(", ", array_map("preformat", rglob("data/*.json"))) . " ];\n");
-      print("var groups = [ " . join(", ", array_map("preformat", glob("groups/*.json"))) . " ];\n");
-      print("var colours = [ " . join(", ", array_map("preformat", glob("colours/*.json"))) . " ];\n");
+      if (file_exists($dataset_cache)){
+        print(file_get_contents($dataset_cache));
+      }
+      else {
+        print("var data_name = \"$data_name\";");
+        print("var datasets = [ " . join(", ", array_map("preformat", rglob($data_name."/*.json"))) . " ];\n");
+        print("var groups = [ " . join(", ", array_map("preformat", glob("groups/*.json"))) . " ];\n");
+        print("var colours = [ " . join(", ", array_map("preformat", glob("colours/*.json"))) . " ];\n");
+      }
     ?>
     </script>
 
@@ -139,11 +154,16 @@
           resource:    null,
           colours:     null,
           groups:      null,
+          filter:      null,
+          data_name:   null,
           show_labels: null
         };
         var url = new URL(window.location.href);
         for (key in config) {
           config[key] = url.searchParams.get(key);
+        }
+        if (config["data_name"] == null){
+          config["data_name"] = data_name;
         }
         return config;
       }
@@ -281,13 +301,15 @@
       function loadAvailableDatasets() {
         var menu = document.getElementById("dataset_menu");
         for (var i = 0; i < datasets.length; i++) {
+          if ((config.filter != null) && (! datasets[i].includes(config.filter))){
+            continue;
+          }
           var entry = document.createElement("option");
           entry.text = datasets[i];
           entry.value = datasets[i];
           menu.options.add(entry);
           if (datasets[i] == config.dataset) {
-            // + 1 because of the disabled entry at the top
-            menu.selectedIndex = i + 1;
+            menu.selectedIndex = menu.options.length-1;
           }
         }
 
@@ -306,7 +328,7 @@
         config.local = false;
 
         // Load the selected dataset, and the associated resource metrics
-        loadJsonInto(current, "dataset", "data/" + config.dataset + ".json", loadAvailableMetrics);
+        loadJsonInto(current, "dataset", config.data_name + "/" + config.dataset + ".json", loadAvailableMetrics);
       }
 
       // Upload a JSON file
