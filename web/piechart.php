@@ -355,20 +355,27 @@
         var resources = current.dataset.resources;
         for (var i = 0; i < resources.length; i++) {
           var entry = document.createElement("option");
-          var key = Object.keys(resources[i])[0];
-          entry.text = resources[i][key];
-          entry.value = key;
-          if (resources[i].unit != null)
-            entry.unit = resources[i].unit;
-          else
-            entry.unit = "";
-          if (resources[i].title != null)
+          var keys = Object.keys(resources[i]);
+          // if you find description title name and unit use them
+          if (keys.includes("description") && keys.includes("title") && keys.includes("name") && keys.includes("unit")) {
+            entry.text = resources[i].description;
+            entry.value = resources[i].name;
             entry.title = resources[i].title;
-          else
-            entry.title = "";
-          menu.add(entry);
-          if (key == config.resource) {
-            menu.selectedIndex = i;
+            entry.unit = resources[i].unit;
+            menu.add(entry);
+            if (key == config.resource) {
+              menu.selectedIndex = i;
+            }
+          } else {
+            for (key in resources[i]) {
+            var entry = document.createElement("option");
+            entry.text = resources[i][key];
+            entry.value = key;
+            menu.add(entry);
+            if (key == config.resource) {
+              menu.selectedIndex = i;
+            }
+          }
           }
         }
 
