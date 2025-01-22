@@ -352,18 +352,23 @@
         while (menu.length) {
           menu.remove(0);
         }
-
-        // Extract the available resources from the input, and select the first one by default
         var resources = current.dataset.resources;
         for (var i = 0; i < resources.length; i++) {
-          for (key in resources[i]) {
-            var entry = document.createElement("option");
-            entry.text = resources[i][key];
-            entry.value = key;
-            menu.add(entry);
-            if (key == config.resource) {
-              menu.selectedIndex = i;
-            }
+          var entry = document.createElement("option");
+          var key = Object.keys(resources[i])[0];
+          entry.text = resources[i][key];
+          entry.value = key;
+          if (resources[i].unit != null)
+            entry.unit = resources[i].unit;
+          else
+            entry.unit = "";
+          if (resources[i].title != null)
+            entry.title = resources[i].title;
+          else
+            entry.title = "";
+          menu.add(entry);
+          if (key == config.resource) {
+            menu.selectedIndex = i;
           }
         }
 
@@ -376,21 +381,24 @@
         var menu = document.getElementById("metric_menu");
         var index = menu.selectedIndex;
         config.resource = menu.options[index].value;
-        current.metric = menu.options[index].text
-        if (config.resource.startsWith("hs23_")) {
-          current.unit = " HS23/Hz";
-          current.title = "Capacity";
-        } else if (config.resource.startsWith("time_")) {
-          current.unit = " ms";
-          current.title = "Time";
-        } else if (config.resource.startsWith("mem_")) {
-          current.unit = " kB";
-          current.title = "Memory";
-        } else {
-          current.unit = "";
-          current.title = "";
+        current.metric = menu.options[index].text;
+        current.unit = menu.options[index].unit;
+        current.title = menu.options[index].title;
+        if (current.unit == null || current.title == null) {
+          if (config.resource.startsWith("hs23_")) {
+            current.unit = " HS23/Hz";
+            current.title = "Capacity";
+          } else if (config.resource.startsWith("time_")) {
+            current.unit = " ms";
+            current.title = "Time";
+          } else if (config.resource.startsWith("mem_")) {
+            current.unit = " kB";
+            current.title = "Memory";
+          } else {
+            current.unit = "";
+            current.title = "";
+          }
         }
-
         updatePage();
       }
 
