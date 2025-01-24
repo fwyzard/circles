@@ -205,6 +205,12 @@
       // Circles data view
       var circles = null;
 
+
+      function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+
       function embed() {
         // We respin until the visualization container has non-zero area (there are race
         // conditions on Chrome which permit that) and the visualization class is loaded.
@@ -252,7 +258,7 @@
             var group = attrs.hoverGroup;
             var value = fixed(group.weight) + current.unit;
             var percent = fixed(group.weight / total * 100.) + " %";
-            table.row.add( [ group.label, value, percent ] );
+            table.row.add( [ escape(group.label), value, percent ] );
             attrs.label = value;
           } else if (attrs.selectedGroups.length > 0) {
             var sum = 0.;
@@ -261,7 +267,7 @@
               var value = fixed(group.weight) + current.unit;
               var percent = fixed(group.weight / total * 100.) + " %";
               sum += group.weight;
-              table.row.add( [ group.label, value, percent ] );
+              table.row.add( [ escape(group.label), value, percent ] );
               attrs.label = value;
             }
             if (attrs.selectedGroups.length > 1) {
@@ -281,7 +287,7 @@
               var group = groups[i];
               var value = fixed(group.weight) + current.unit;
               var percent = fixed(group.weight / total * 100.) + " %";
-              table.row.add( [ group.label, value, percent ] );
+              table.row.add( [ escape(group.label), value, percent ] );
             }
             var label   = "total";
             var value   = fixed(total) + current.unit;
@@ -754,7 +760,7 @@
 
       circles.set("onGroupHover", function(hover) {
         if (hover.group) {
-          tooltip.innerHTML = hover.group.label + "<br>" + hover.group.weight.toFixed(1) + " " + current.unit;
+          tooltip.innerHTML = escape(hover.group.label) + "<br>" + hover.group.weight.toFixed(1) + " " + current.unit;
           if ("events" in hover.group) {
             tooltip.innerHTML += "<br>" + (hover.group.events * 100.).toFixed(1) + "% events";
           }
