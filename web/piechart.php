@@ -205,6 +205,12 @@
       // Circles data view
       var circles = null;
 
+
+      function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+
       function embed() {
         // We respin until the visualization container has non-zero area (there are race
         // conditions on Chrome which permit that) and the visualization class is loaded.
@@ -252,7 +258,7 @@
             var group = attrs.hoverGroup;
             var value = fixed(group.weight) + current.unit;
             var percent = fixed(group.weight / total * 100.) + " %";
-            table.row.add( [ group.label, value, percent ] );
+            table.row.add( [ escape(group.label), value, percent ] );
             attrs.label = value;
           } else if (attrs.selectedGroups.length > 0) {
             var sum = 0.;
@@ -261,7 +267,7 @@
               var value = fixed(group.weight) + current.unit;
               var percent = fixed(group.weight / total * 100.) + " %";
               sum += group.weight;
-              table.row.add( [ group.label, value, percent ] );
+              table.row.add( [ escape(group.label), value, percent ] );
               attrs.label = value;
             }
             if (attrs.selectedGroups.length > 1) {
@@ -281,7 +287,7 @@
               var group = groups[i];
               var value = fixed(group.weight) + current.unit;
               var percent = fixed(group.weight / total * 100.) + " %";
-              table.row.add( [ group.label, value, percent ] );
+              table.row.add( [ escape(group.label), value, percent ] );
             }
             var label   = "total";
             var value   = fixed(total) + current.unit;
@@ -352,11 +358,23 @@
         while (menu.length) {
           menu.remove(0);
         }
-
-        // Extract the available resources from the input, and select the first one by default
         var resources = current.dataset.resources;
+
         for (var i = 0; i < resources.length; i++) {
-          for (key in resources[i]) {
+          var entry = document.createElement("option");
+          var keys = Object.keys(resources[i]);
+          // if you find description title name and unit use them
+          if (keys.includes("description") && keys.includes("title") && keys.includes("name") && keys.includes("unit")) {
+            entry.text = resources[i].description;
+            entry.value = resources[i].name;
+            entry.dataset.title = resources[i].title;
+            entry.dataset.unit = resources[i].unit;
+            menu.add(entry);
+            if (key == config.resource) {
+              menu.selectedIndex = i;
+            }
+          } else {
+            for (key in resources[i]) {
             var entry = document.createElement("option");
             entry.text = resources[i][key];
             entry.value = key;
@@ -364,6 +382,7 @@
             if (key == config.resource) {
               menu.selectedIndex = i;
             }
+          }
           }
         }
 
@@ -376,21 +395,24 @@
         var menu = document.getElementById("metric_menu");
         var index = menu.selectedIndex;
         config.resource = menu.options[index].value;
-        current.metric = menu.options[index].text
-        if (config.resource.startsWith("hs23_")) {
-          current.unit = " HS23/Hz";
-          current.title = "Capacity";
-        } else if (config.resource.startsWith("time_")) {
-          current.unit = " ms";
-          current.title = "Time";
-        } else if (config.resource.startsWith("mem_")) {
-          current.unit = " kB";
-          current.title = "Memory";
-        } else {
-          current.unit = "";
-          current.title = "";
+        current.metric = menu.options[index].text;
+        current.unit = menu.options[index].dataset.unit;
+        current.title = menu.options[index].dataset.title;
+        if (current.unit == null || current.title == null) {
+          if (config.resource.startsWith("hs23_")) {
+            current.unit = " HS23/Hz";
+            current.title = "Capacity";
+          } else if (config.resource.startsWith("time_")) {
+            current.unit = " ms";
+            current.title = "Time";
+          } else if (config.resource.startsWith("mem_")) {
+            current.unit = " kB";
+            current.title = "Memory";
+          } else {
+            current.unit = "";
+            current.title = "";
+          }
         }
-
         updatePage();
       }
 
@@ -582,6 +604,7 @@
       function makeOrUpdateGroup(group, module) {
         // data should always have a "groups" property of array type
         var data = current.data;
+        data.elements = 0
         for (label of group) {
           // add the module's resource to the group's
           data.weight += module[config.resource];
@@ -599,12 +622,11 @@
             data = data.groups[len-1];
           }
         }
-
         // add the module and its resource to the group
         if (current.show_labels || module.label == "other")
-          data.groups.push({ "label": module.label, "weight": module[config.resource], "events": module.events })
+          data.groups.push({ "label": module.label, "weight": module[config.resource], "events": module.events, "ratio": module.ratio});
         else
-          data.groups.push({ "label": "", "weight": module[config.resource], "events": module.events })
+          data.groups.push({ "label": "", "weight": module[config.resource], "events": module.events, "ratio": module.ratio});
         data.weight += module[config.resource];
       }
 
@@ -642,14 +664,13 @@
         current.data = {
           "label": current.dataset.total.label,
           "expected": current.dataset.total[config.resource],
+          "ratio": current.dataset.total.ratio,
           "weight": 0.,
           "groups": []
         }
 
         var threshold = config.threshold * current.dataset.total.events;
         for (module of current.dataset.modules) {
-          if (module[config.resource] <= threshold)
-            continue;
           var group = findGroup(module);
           group.push(module.type);
           makeOrUpdateGroup(group, module);
@@ -739,9 +760,12 @@
 
       circles.set("onGroupHover", function(hover) {
         if (hover.group) {
-          tooltip.innerHTML = hover.group.label + "<br>" + hover.group.weight.toFixed(1) + " ms";
+          tooltip.innerHTML = escape(hover.group.label) + "<br>" + hover.group.weight.toFixed(1) + " " + current.unit;
           if ("events" in hover.group) {
             tooltip.innerHTML += "<br>" + (hover.group.events * 100.).toFixed(1) + "% events";
+          }
+          if ("ratio" in hover.group) {
+            tooltip.innerHTML += "<br>" + (hover.group.ratio * 100.).toFixed(1) + "% ratio";
           }
           tooltip.style.visibility = "visible";
         } else {
