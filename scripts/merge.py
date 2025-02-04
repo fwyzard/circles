@@ -8,6 +8,7 @@ def merge_into(metrics, data, dest):
   for metric in metrics:
     dest[metric] += data[metric]
 
+
 def convert_old_resources(resources, filename):
   mapping = {
     "time_real": {"name": "time_real", "description": "real time", "unit": "ms", "title": "Time"},
@@ -41,7 +42,7 @@ with open(sys.argv[1]) as f:
 
 output["resources"] = convert_old_resources(output["resources"], sys.argv[1])
 
-metrics = [resource["name"] for resource in output["resources"]]
+metrics = [resource["name"] if "name" in resource else key for resource in output["resources"] for key in resource]
 
 datamap = { module["type"] + '|' + module["label"] : module for module in output["modules"] }
 
