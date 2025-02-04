@@ -361,7 +361,7 @@
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
         a.href = url;
-        a.download = config.dataset;
+        a.download = config.dataset + '.json';
         a.click();
       }
 
