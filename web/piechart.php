@@ -103,7 +103,6 @@
           or <b>upload a file</b>
           <input type="file" accept=".json" id="dataset_upload" oninput="uploadDataset(this.files)"/>
         </div>
-        <div></div>
         <div style="display:inline-block;">
           <b>Metric</b>
           <select id="metric_menu" name="resource" onchange="updateMetrics()">
@@ -123,7 +122,10 @@
           <b>Show labels</b>
         </div>
         <div style="display:inline-block;">
-          <button type="button" onclick="getImage()">Get image</button>
+          <button type="button" onclick="getImage()">Download image</button>
+        </div>
+        <div style="display:inline-block;">
+          <button type="button" onclick="downloadDataset()">Download dataset</button>
         </div>
       </form>
       <hr/>
@@ -353,6 +355,15 @@
         });
       }
 
+      function downloadDataset() {
+        var data = JSON.stringify(current.dataset, null, 2);
+        var blob = new Blob([data], {type: "application/json"});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = config.dataset;
+        a.click();
+      }
 
       function loadAvailableMetrics() {
         var menu = document.getElementById("metric_menu");
