@@ -103,7 +103,6 @@
           or <b>upload a file</b>
           <input type="file" accept=".json" id="dataset_upload" oninput="uploadDataset(this.files)"/>
         </div>
-        <div></div>
         <div style="display:inline-block;">
           <b>Metric</b>
           <select id="metric_menu" name="resource" onchange="updateMetrics()">
@@ -121,6 +120,12 @@
         <div style="display:inline-block;">
           <input type="checkbox" checked id="show_labels_checkbox" name="show_labels" onchange="updateShowLabels()"></input>
           <b>Show labels</b>
+        </div>
+        <div style="display:inline-block;">
+          <button type="button" onclick="getImage()">Download image</button>
+        </div>
+        <div style="display:inline-block;">
+          <button type="button" onclick="downloadDataset()">Download dataset</button>
         </div>
       </form>
       <hr/>
@@ -350,6 +355,15 @@
         });
       }
 
+      function downloadDataset() {
+        var data = JSON.stringify(current.dataset, null, 2);
+        var blob = new Blob([data], {type: "application/json"});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = config.dataset;
+        a.click();
+      }
 
       function loadAvailableMetrics() {
         var menu = document.getElementById("metric_menu");
@@ -385,7 +399,7 @@
           }
           }
         }
-
+        
         updateMetrics();
       }
 
@@ -696,18 +710,37 @@
           circles.set("dataObject", current.data);
         }
       }
-
+      
+      
       // load the colour scheme
       loadJsonInto(current, "colours", "colours/" + config.colours + ".json", function(){});
-
+      
       // load the available datasets, and the resources actually available from the dataset
       loadAvailableDatasets();
-
+      
       // load the available groups and colours
       loadAvailableGroups();
       loadAvailableColours();
-
+      
       embed();
+      function getImage() {
+        var canvas1 = document.getElementById("visualization").getElementsByTagName("canvas")[0];
+        var canvas2 = document.getElementById("visualization").getElementsByTagName("canvas")[1];
+        var logo = document.getElementById("logo").getElementsByTagName("img")[0];
+
+        var canvas = document.createElement("canvas");
+        var ctx = canvas.getContext("2d");
+        canvas.width = canvas1.width;
+        canvas.height = canvas1.height;
+        ctx.drawImage(canvas1, 0, 0);
+        ctx.drawImage(canvas2, 0, 0);
+        ctx.drawImage(logo, 32, 32, 72, 72); // Adjust the position and size as needed
+
+        var a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = "piechart.png";
+        a.click();
+      }
     </script>
 
     <script>
