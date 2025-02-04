@@ -122,6 +122,9 @@
           <input type="checkbox" checked id="show_labels_checkbox" name="show_labels" onchange="updateShowLabels()"></input>
           <b>Show labels</b>
         </div>
+        <div style="display:inline-block;">
+          <button type="button" onclick="getImage()">Get image</button>
+        </div>
       </form>
       <hr/>
 
@@ -385,7 +388,7 @@
           }
           }
         }
-
+        
         updateMetrics();
       }
 
@@ -696,18 +699,33 @@
           circles.set("dataObject", current.data);
         }
       }
-
+      
+      
       // load the colour scheme
       loadJsonInto(current, "colours", "colours/" + config.colours + ".json", function(){});
-
+      
       // load the available datasets, and the resources actually available from the dataset
       loadAvailableDatasets();
-
+      
       // load the available groups and colours
       loadAvailableGroups();
       loadAvailableColours();
-
+      
       embed();
+      function getImage() {
+        var canvas1 = document.getElementById("visualization").getElementsByTagName("canvas")[0];
+        var canvas2 = document.getElementById("visualization").getElementsByTagName("canvas")[1];
+        var canvas = document.createElement("canvas");
+        var ctx = canvas.getContext("2d");
+        canvas.width = canvas1.width;
+        canvas.height = canvas1.height;
+        ctx.drawImage(canvas1, 0, 0);
+        ctx.drawImage(canvas2, 0, 0);
+        var a = document.createElement("a");
+        a.href = canvas.toDataURL("image/png");
+        a.download = "piechart.png";
+        a.click();
+      }
     </script>
 
     <script>
