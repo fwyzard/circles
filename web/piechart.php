@@ -715,12 +715,16 @@
       function getImage() {
         var canvas1 = document.getElementById("visualization").getElementsByTagName("canvas")[0];
         var canvas2 = document.getElementById("visualization").getElementsByTagName("canvas")[1];
+        var logo = document.getElementById("logo").getElementsByTagName("img")[0];
+
         var canvas = document.createElement("canvas");
         var ctx = canvas.getContext("2d");
         canvas.width = canvas1.width;
         canvas.height = canvas1.height;
         ctx.drawImage(canvas1, 0, 0);
         ctx.drawImage(canvas2, 0, 0);
+        ctx.drawImage(logo, 32, 32, 72, 72); // Adjust the position and size as needed
+
         var a = document.createElement("a");
         a.href = canvas.toDataURL("image/png");
         a.download = "piechart.png";
