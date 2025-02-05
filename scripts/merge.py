@@ -42,7 +42,13 @@ with open(sys.argv[1]) as f:
 
 output["resources"] = convert_old_resources(output["resources"], sys.argv[1])
 
-metrics = [resource["name"] if "name" in resource else key for resource in output["resources"] for key in resource]
+metrics = []
+for resource in output["resources"]:
+  if "name" in resource:
+    metrics.append(resource["name"])
+  else:
+    for key in resource:
+      metrics.append(key)
 
 datamap = { module["type"] + '|' + module["label"] : module for module in output["modules"] }
 

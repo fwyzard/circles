@@ -410,7 +410,7 @@
         var index = menu.selectedIndex;
         config.resource = menu.options[index].value;
         current.metric = menu.options[index].text;
-        current.unit = menu.options[index].dataset.unit;
+        current.unit =  " " + menu.options[index].dataset.unit;
         current.title = menu.options[index].dataset.title;
         if (current.unit == null || current.title == null) {
           if (config.resource.startsWith("hs23_")) {
