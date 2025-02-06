@@ -1,3 +1,26 @@
+// Current configuration
+var config = loadConfigFromURL();
+
+// Input data to parse and visualise
+var current = {
+  colours: null,
+  compiled: null,
+  data: null,
+  dataset: null,
+  groups: null,
+  metric: null, // description of the current mteric
+  processing: false, // the new configuration is being processed
+  show_labels: true,
+  title: null, // column title associated to the current metric
+  unit: null // unit associated to the current metric
+};
+
+// Circles data view
+var circles = null;
+
+var unassigned = [];
+
+var tooltip = document.getElementById("tooltip");
 
 function fixed(value) {
   return Number.parseFloat(value).toFixed(1);
@@ -12,9 +35,11 @@ function fixed(value) {
 function parseGetData() {
   var data = {};
   window.location.search.slice(1).split("&").forEach(function (value) {
+    var key;
+    var val;
     [key, val] = value.split("=").map(decodeURIComponent);
     data[key] = (
-      (val == undefined)? null: val
+      (val === undefined) ? null : val
     );
   });
   return data;
@@ -26,7 +51,7 @@ function loadJsonInto(target, attribute, url, then) {
   xhttp.overrideMimeType("application/json");
   xhttp.open("GET", url);
   xhttp.onreadystatechange = function () {
-    if (xhttp.readyState == 4) {
+    if (xhttp.readyState === 4) {
       target[attribute] = JSON.parse(xhttp.responseText);
       then();
     }
@@ -36,12 +61,12 @@ function loadJsonInto(target, attribute, url, then) {
 
 function groupColorDecorator(options, properties, variables) {
   // customize only the top level groups' colours
-  if (properties.level > 0){
+  if (properties.level > 0) {
     return;
   }
 
   // use the group color defined in the dataset
-  if ("color" in properties.group) {
+  if (properties.group.hasOwnProperty("color")) {
     variables.groupColor = properties.group.color;
     variables.labelColor = "auto";
   }
@@ -49,12 +74,12 @@ function groupColorDecorator(options, properties, variables) {
 
 function circlesVisibilityDecorator(group) {
   // hide the "other" groups
-  return (group.label != "other");
+  return (group.label !== "other");
 }
 
 function foamtreeVisibilityDecorator(properties, variables) {
   // hide the "other" groups
-  if (properties.group.label == "other") {
+  if (properties.group.label === "other") {
     variables.groupLabelDrawn = false;
     variables.groupPolygonDrawn = false;
   }
@@ -62,7 +87,7 @@ function foamtreeVisibilityDecorator(properties, variables) {
 
 // Load the configuration from the URL
 function loadConfigFromURL() {
-  var config = {
+  var local_config = {
     colours: null,
     data_name: null,
     dataset: null,
@@ -73,52 +98,34 @@ function loadConfigFromURL() {
     show_labels: null
   };
   var url = new URL(window.location.href);
-  for (key in config) {
-    config[key] = url.searchParams.get(key);
+  Object.keys(local_config).forEach(function (key) {
+    local_config[key] = url.searchParams.get(key);
+  });
+  if (local_config.colours === null) {
+    local_config.colours = "default";
   }
-  if (config["data_name"] == null) {
-    config["data_name"] = data_name;
+  if (local_config.groups === null) {
+    local_config.groups = "hlt";
   }
-  return config;
+  if (local_config.show_labels === null) {
+    local_config.show_labels = true;
+  }
+  local_config.threshold = 0.0;
+  return local_config;
 }
 
 // Write the configuration as URL parameters
 function convertConfigToURL(config) {
-  var params = []
-  for (key in config) {
-    if (config[key] != null)
-      params.push(encodeURIComponent(key) + "=" + encodeURIComponent(config[key]));
-  }
+  var params = [];
+  Object.keys(config).forEach(function (key) {
+    if (config[key] !== null) {
+      params.push(
+        encodeURIComponent(key) + "=" + encodeURIComponent(config[key])
+      );
+    }
+  });
   return "?" + params.join("&");
 }
-
-// Current configuration
-var config = loadConfigFromURL();
-if (config.colours == null)
-  config.colours = "default";
-if (config.groups == null)
-  config.groups = "hlt";
-if (config.show_labels == null)
-  config.show_labels = true;
-config.threshold = 0.;
-
-// Input data to parse and visualise
-var current = {
-  dataset: null,
-  colours: null,
-  groups: null,
-  show_labels: true,
-  compiled: null,
-  metric: null,   // description of the current mteric
-  title: null,   // column title associated to the current metric
-  unit: null,   // unit associated to the current metric
-  data: null,
-  processing: false,  // the new configuration is being processed
-};
-
-// Circles data view
-var circles = null;
-
 
 function escape(text) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -126,24 +133,29 @@ function escape(text) {
 
 
 function embed() {
-  // We respin until the visualization container has non-zero area (there are race
-  // conditions on Chrome which permit that) and the visualization class is loaded.
+  // We respin until the visualization container has non-zero area
+  // (there are race conditions on Chrome which permit that) and the
+  //  visualization class is loaded.
   var container = document.getElementById("visualization");
-  if (container.clientWidth <= 0 || container.clientHeight <= 0 || !window["CarrotSearchCircles"]) {
+  if (
+    container.clientWidth <= 0 ||
+    container.clientHeight <= 0 ||
+    !window.CarrotSearchCircles
+  ) {
     window.setTimeout(embed, 250);
     return;
   }
 
   // Create an empty CarrotSearchCircles without any data
   circles = new CarrotSearchCircles({
-    id: "visualization",
     captureMouseEvents: false,
+    dataObject: null,
+    id: "visualization",
     pixelRatio: Math.min(2, window.devicePixelRatio || 1),
-    visibleGroupCount: 0,
     showZeroWeightGroups: false,
     titleBar: "inscribed",
     titleBarTextColor: "#444",
-    dataObject: null
+    visibleGroupCount: 0
   });
 
   installResizeHandlerFor(circles, 300);
@@ -158,58 +170,65 @@ function embed() {
 
 
   circles.set("titleBarLabelDecorator", function (attrs) {
-    var table = $('#properties').DataTable();
-    table.clear();
-    $('#resource_title').text(current.title);
-    $('#selected_label').text();
-    $('#selected_value').text();
-    $('#selected_percent').text();
-    $('#selected').hide();
-
+    var table = $("#properties").DataTable();
     var total = circles.get("dataObject").weight;
+    var group;
+    var groups;
+    var i;
+    var label;
+    var percent;
+    var sum;
+    var value;
+    table.clear();
+    $("#resource_title").text(current.title);
+    $("#selected_label").text();
+    $("#selected_value").text();
+    $("#selected_percent").text();
+    $("#selected").hide();
+
 
     if (attrs.hoverGroup) {
-      var group = attrs.hoverGroup;
-      var value = fixed(group.weight) + current.unit;
-      var percent = fixed(group.weight / total * 100.) + " %";
+      group = attrs.hoverGroup;
+      value = fixed(group.weight) + current.unit;
+      percent = fixed(group.weight / total * 100.0) + " %";
       table.row.add([escape(group.label), value, percent]);
       attrs.label = value;
     } else if (attrs.selectedGroups.length > 0) {
-      var sum = 0.;
-      for (var i = 0; i < attrs.selectedGroups.length; i++) {
-        var group = attrs.selectedGroups[i];
-        var value = fixed(group.weight) + current.unit;
-        var percent = fixed(group.weight / total * 100.) + " %";
+      sum = 0.0;
+      for (i = 0; i < attrs.selectedGroups.length; i += 1) {
+        group = attrs.selectedGroups[i];
+        value = fixed(group.weight) + current.unit;
+        percent = fixed(group.weight / total * 100.0) + " %";
         sum += group.weight;
         table.row.add([escape(group.label), value, percent]);
         attrs.label = value;
       }
       if (attrs.selectedGroups.length > 1) {
-        var label = "selected";
-        var value = fixed(sum) + current.unit;
-        var percent = fixed(sum / total * 100.) + " %";
-        $('#selected_label').text(label);
-        $('#selected_value').text(value);
-        $('#selected_percent').text(percent);
-        $('#selected').show();
+        label = "selected";
+        value = fixed(sum) + current.unit;
+        percent = fixed(sum / total * 100.0) + " %";
+        $("#selected_label").text(label);
+        $("#selected_value").text(value);
+        $("#selected_percent").text(percent);
+        $("#selected").show();
         attrs.label = value;
       }
     } else {
       // Show all top level groups
-      var groups = circles.get("dataObject").groups;
-      for (var i = 0; i < groups.length; i++) {
-        var group = groups[i];
-        var value = fixed(group.weight) + current.unit;
-        var percent = fixed(group.weight / total * 100.) + " %";
+      groups = circles.get("dataObject").groups;
+      for (i = 0; i < groups.length; i += 1) {
+        group = groups[i];
+        value = fixed(group.weight) + current.unit;
+        percent = fixed(group.weight / total * 100.0) + " %";
         table.row.add([escape(group.label), value, percent]);
       }
-      var label = "total";
-      var value = fixed(total) + current.unit;
-      var percent = fixed(100.) + " %";
-      $('#selected_label').text(label);
-      $('#selected_value').text(value);
-      $('#selected_percent').text(percent);
-      $('#selected').show();
+      label = "total";
+      value = fixed(total) + current.unit;
+      percent = fixed(100.0) + " %";
+      $("#selected_label").text(label);
+      $("#selected_value").text(value);
+      $("#selected_percent").text(percent);
+      $("#selected").show();
       attrs.label = value;
     }
 
@@ -220,24 +239,24 @@ function embed() {
 // Load the available datasets
 function loadAvailableDatasets() {
   var menu = document.getElementById("dataset_menu");
+  var i;
   while (menu.length) {
     menu.remove(0);
   }
-  for (var i = 0; i < datasets.length; i++) {
-    if ((config.filter != null) && (!datasets[i].includes(config.filter))) {
+  for (i = 0; i < datasets.length; i += 1) {
+    if ((config.filter !== null) && (!datasets[i].includes(config.filter))) {
       continue;
     }
     var entry = document.createElement("option");
     entry.text = datasets[i];
     entry.value = datasets[i];
     menu.options.add(entry);
-    if (datasets[i] == config.dataset) {
+    if (datasets[i] === config.dataset) {
       menu.selectedIndex = menu.options.length - 1;
     }
   }
-  console.log(menu.selectedIndex);
   // if a dataset is selected, load it and the associated resources
-  if (menu.selectedIndex != null) {
+  if (menu.selectedIndex !== null) {
     updateDataset();
   }
 }
@@ -251,16 +270,21 @@ function updateDataset() {
   config.local = false;
 
   // Load the selected dataset, and the associated resource metrics
-  loadJsonInto(current, "dataset", config.data_name + "/" + config.dataset + ".json", loadAvailableMetrics);
+  loadJsonInto(
+    current,
+    "dataset",
+    config.data_name + "/" + config.dataset + ".json",
+    loadAvailableMetrics
+  );
 }
 
 // Upload a JSON file
 function uploadDataset(files) {
   // Reset the dataset selection in the drop-down menu
+  var file = files[0];
   document.getElementById("dataset_menu").selectedIndex = 0;
   config.dataset = null;
   config.local = true;
-  var file = files[0];
   file.text().then(function (content) {
     current.dataset = JSON.parse(content);
     loadAvailableMetrics();
@@ -269,46 +293,53 @@ function uploadDataset(files) {
 
 function downloadDataset() {
   var data = JSON.stringify(current.dataset, null, 2);
-  var blob = new Blob([data], { type: "application/json" });
+  var blob = new Blob([data], {
+    type: "application/json"
+  });
   var url = URL.createObjectURL(blob);
   var a = document.createElement("a");
   a.href = url;
-  a.download = config.dataset + '.json';
+  a.download = config.dataset + ".json";
   a.click();
 }
 
 function loadAvailableMetrics() {
   var menu = document.getElementById("metric_menu");
-
+  var i;
+  var resources = current.dataset.resources;
+  var keys;
   // Clear the current resources
   while (menu.length) {
     menu.remove(0);
   }
-  var resources = current.dataset.resources;
 
-  for (var i = 0; i < resources.length; i++) {
+  for (i = 0; i < resources.length; i += 1) {
     var entry = document.createElement("option");
-    var keys = Object.keys(resources[i]);
+    keys = Object.keys(resources[i]);
     // if you find description title name and unit use them
-    if (keys.includes("description") && keys.includes("title") && keys.includes("name") && keys.includes("unit")) {
+    if (
+      keys.includes("description") &&
+      keys.includes("title") &&
+      keys.includes("name") &&
+      keys.includes("unit")
+    ) {
       entry.text = resources[i].description;
       entry.value = resources[i].name;
       entry.dataset.title = resources[i].title;
       entry.dataset.unit = resources[i].unit;
       menu.add(entry);
-      if (key == config.resource) {
+      if (entry.value === config.resource) {
         menu.selectedIndex = i;
       }
     } else {
-      for (key in resources[i]) {
-        var entry = document.createElement("option");
+      Object.keys(resources[i]).forEach(function (key) {
         entry.text = resources[i][key];
         entry.value = key;
         menu.add(entry);
-        if (key == config.resource) {
+        if (key === config.resource) {
           menu.selectedIndex = i;
         }
-      }
+      });
     }
   }
 
@@ -324,7 +355,7 @@ function updateMetrics() {
   current.metric = menu.options[index].text;
   current.unit = " " + menu.options[index].dataset.unit;
   current.title = menu.options[index].dataset.title;
-  if (current.unit == null || current.title == null) {
+  if (current.unit === null || current.title === null) {
     if (config.resource.startsWith("hs23_")) {
       current.unit = " HS23/Hz";
       current.title = "Capacity";
@@ -349,7 +380,11 @@ function updateGroups() {
   config.groups = menu.options[index].value;
 
   // load the module groups, then update the page
-  loadJsonInto(current, "groups", "groups/" + config.groups + ".json", compileGroups);
+  loadJsonInto(
+    current,
+    "groups", "groups/" + config.groups + ".json",
+    compileGroups
+  );
 }
 
 // Update the configuration with the selected colour scheme
@@ -359,7 +394,12 @@ function updateColours() {
   config.colours = menu.options[index].value;
 
   // load the colour scheme, then update the page
-  loadJsonInto(current, "colours", "colours/" + config.colours + ".json", updatePage);
+  loadJsonInto(
+    current,
+    "colours",
+    "colours/" + config.colours + ".json",
+    updatePage
+  );
 }
 
 // Update the configuration with the visibility of the leaf labels
@@ -373,9 +413,12 @@ function updateShowLabels() {
   updatePage();
 }
 
-// Update the title, URL, history and visualisation based on the current configuration
+// Update the title, URL, history and visualisation based on the current
+// configuration
 function updatePage() {
-  var title = (config.local ? "local file" : config.dataset) + " - " + current.metric;
+  var title = (
+    (config.local ? "local file" : config.dataset) + " - " + current.metric
+  );
   window.history.pushState(config, title, convertConfigToURL(config));
   document.title = "CMSSW resource utilisation: " + title;
 
@@ -383,7 +426,7 @@ function updatePage() {
   window.onpopstate = function (event) {
     config = event.state;
     updateDataset();
-  }
+  };
 
   updateDataView();
 }
@@ -391,12 +434,13 @@ function updatePage() {
 // Load the available groupings
 function loadAvailableGroups() {
   var menu = document.getElementById("groups_menu");
-  for (var i = 0; i < groups.length; i++) {
+  var i;
+  for (i = 0; i < groups.length; i += 1) {
     var entry = document.createElement("option");
     entry.text = groups[i];
     entry.value = groups[i];
     menu.options.add(entry);
-    if (groups[i] == config.groups) {
+    if (groups[i] === config.groups) {
       menu.selectedIndex = i;
     }
   }
@@ -407,12 +451,13 @@ function loadAvailableGroups() {
 // Load the available colour scheme
 function loadAvailableColours() {
   var menu = document.getElementById("colours_menu");
-  for (var i = 0; i < colours.length; i++) {
+  var i;
+  for (i = 0; i < colours.length; i += 1) {
     var entry = document.createElement("option");
     entry.text = colours[i];
     entry.value = colours[i];
     menu.options.add(entry);
-    if (colours[i] == config.colours) {
+    if (colours[i] === config.colours) {
       menu.selectedIndex = i;
     }
   }
@@ -426,8 +471,9 @@ function loadAvailableColours() {
 //  - a glob pattern "module*" compiles to a regex object /^module.*$/
 function compilePattern(pattern) {
   // empty string, return a null object
-  if (pattern == "")
+  if (pattern === "") {
     return null;
+  }
 
   // glob pattern, convert ot a regular expression
   if (pattern.includes("?") || pattern.includes("*")) {
@@ -445,37 +491,42 @@ function compilePattern(pattern) {
 //   - a literal string pattern matches a full string
 //   - a regex pattern matches accrding to the regex
 function matchPattern(pattern, text) {
-  if (pattern == null)
+  if (pattern === null) {
     return true;
+  }
 
-  if (pattern instanceof RegExp)
+  if (pattern instanceof RegExp) {
     return pattern.test(text);
+  }
 
-  return (pattern == text);
+  return (pattern === text);
 }
 
-// Compile the group definition as a pair of patterns for the module's type and label
+// Compile the group definition as a pair of patterns for the
+// module's type and label
 function compileGroups() {
-  current.compiled = null;
   var compiled = [];
+  var key;
+  current.compiled = null;
 
-  for (key in current.groups) {
+  Object.keys(current.groups).forEach(function (key) {
     // convert a glob pattern into a regular expression
-    var t, l;
+    var t;
+    var l;
     if (key.includes("|")) {
-      [t, l] = key.split("|")
+      [t, l] = key.split("|");
       t = compilePattern(t);
       l = compilePattern(l);
     } else {
       // leave the type null
-      t = null
+      t = null;
       l = compilePattern(key);
     }
     compiled.push([t, l, current.groups[key]]);
-  }
+  });
 
   // Insert the group "other"
-  if (current.groups["other"] == undefined) {
+  if (current.groups.other === undefined) {
     compiled.push([new RegExp(".*"), new RegExp("^other$"), "other"]);
   }
 
@@ -483,20 +534,21 @@ function compileGroups() {
   updatePage();
 }
 
-unassigned = [];
-
 function findGroup(module) {
   var assigned = false;
   var group = "Unassigned";
-  for ([t, l, g] of current.compiled) {
+  current.compiled.forEach(function ([t, l, g]) {
     if (matchPattern(t, module.type) && matchPattern(l, module.label)) {
       assigned = true;
       group = g;
-      break;
+      return;
     }
-  }
+  });
   if (!assigned) {
-    unassigned.push({ type: module.type, label: module.label });
+    unassigned.push({
+      label: module.label,
+      type: module.type
+    });
   }
 
   return group.split("|");
@@ -507,20 +559,20 @@ function findGroup(module) {
 function getGroup(group) {
   // data should always have a "groups" property of array type
   var data = current.data;
-  for (label of group) {
+  group.forEach(function (label) {
     // check if data.groups has an element wih the given label
     var found = false;
-    for (element of data.groups) {
-      if (element.label == label) {
+    data.groups.forEach(function (element) {
+      if (element.label === label) {
         found = true;
         data = element;
-        break;
+        return;
       }
-    }
+    });
     if (!found) {
       return null;
     }
-  }
+  });
 
   return data;
 }
@@ -530,47 +582,64 @@ function getGroup(group) {
 function makeOrUpdateGroup(group, module) {
   // data should always have a "groups" property of array type
   var data = current.data;
-  data.elements = 0
-  for (label of group) {
+  var len;
+  data.elements = 0;
+  group.forEach(function (label) {
+    var found = false;
     // add the module's resource to the group's
     data.weight += module[config.resource];
     // make sure that data.groups has an element wih the given label
-    var found = false;
-    for (element of data.groups) {
-      if (element.label == label) {
+    data.groups.forEach(function (element) {
+      if (element.label === label) {
         found = true;
         data = element;
-        break;
+        return;
       }
-    }
+    });
     if (!found) {
-      var len = data.groups.push({ "label": label, "weight": 0., "groups": [] })
+      len = data.groups.push({
+        "groups": [],
+        "label": label,
+        "weight": 0.0
+      });
       data = data.groups[len - 1];
     }
-  }
+  });
   // add the module and its resource to the group
-  if (current.show_labels || module.label == "other")
-    data.groups.push({ "label": module.label, "weight": module[config.resource], "events": module.events, "ratio": module.ratio });
-  else
-    data.groups.push({ "label": "", "weight": module[config.resource], "events": module.events, "ratio": module.ratio });
+  if (current.show_labels || module.label === "other") {
+    data.groups.push({
+      "events": module.events,
+      "label": module.label,
+      "ratio": module.ratio,
+      "weight": module[config.resource]
+    });
+  } else {
+    data.groups.push({
+      "events": module.events,
+      "label": "",
+      "ratio": module.ratio,
+      "weight": module[config.resource]
+    });
+
+  }
   data.weight += module[config.resource];
 }
 
 function normalise(data, events) {
-  data.weight /= events;
-  if ("events" in data) {
-    data.events /= events;
+  data.weight = data.weight / events;
+  if (data.hasOwnProperty("events")) {
+    data.events = data.events / events;
   }
-  if ("groups" in data) {
-    for (group of data.groups) {
+  if (data.hasOwnProperty("groups")) {
+    data.groups.forEach(function (group) {
       normalise(group, events);
-    }
+    });
   }
 }
 
 function updateDataView() {
   // Do not draw if the configuration is incomplete
-  if ((config.local == false && config.dataset == null) || !config.resource) {
+  if ((config.local === false && config.dataset === null) || !config.resource) {
     return;
   }
 
@@ -580,7 +649,12 @@ function updateDataView() {
   }
 
   // Respin until all configurations are available
-  if (current.dataset == null || current.colours == null || current.groups == null || current.compiled == null) {
+  if (
+    current.dataset === null ||
+    current.colours === null ||
+    current.groups === null ||
+    current.compiled === null
+  ) {
     window.setTimeout(updateDataView, 250);
     return;
   }
@@ -588,32 +662,32 @@ function updateDataView() {
   current.processing = true;
 
   current.data = {
-    "label": current.dataset.total.label,
     "expected": current.dataset.total[config.resource],
+    "groups": [],
+    "label": current.dataset.total.label,
     "ratio": current.dataset.total.ratio,
-    "weight": 0.,
-    "groups": []
-  }
+    "weight": 0.0
+  };
 
-  for (module of current.dataset.modules) {
+  current.dataset.modules.forEach(function (module) {
     var group = findGroup(module);
     group.push(module.type);
     makeOrUpdateGroup(group, module);
-  }
+  });
   if (unassigned.length) {
     console.log("Unassigned modules:");
     console.table(unassigned);
   }
   normalise(current.data, current.dataset.total.events);
 
-  for (key in current.colours) {
-    group = getGroup(key.split("|"));
-    if (group != null) {
+  Object.keys(current.colours).forEach(function (key) {
+    var group = getGroup(key.split("|"));
+    if (group !== null) {
       group.color = current.colours[key];
     }
-  }
+  });
 
-  if (circles != null) {
+  if (circles !== null) {
     circles.set("onRolloutComplete", function () {
       current.processing = false;
     });
@@ -624,30 +698,47 @@ function updateDataView() {
 
 
 function getImage() {
-  var canvas1 = document.getElementById("visualization").getElementsByTagName("canvas")[0];
-  var canvas2 = document.getElementById("visualization").getElementsByTagName("canvas")[1];
-  var logo = document.getElementById("logo").getElementsByTagName("img")[0];
+  var canvas1 = document
+    .getElementById("visualization")
+    .getElementsByTagName("canvas")[0];
+  var canvas2 = document
+    .getElementById("visualization")
+    .getElementsByTagName("canvas")[1];
+  var logo = document
+    .getElementById("logo")
+    .getElementsByTagName("img")[0];
 
   var canvas = document.createElement("canvas");
   var ctx = canvas.getContext("2d");
+  var a = document.createElement("a");
+
   canvas.width = canvas1.width;
   canvas.height = canvas1.height;
   ctx.drawImage(canvas1, 0, 0);
   ctx.drawImage(canvas2, 0, 0);
   ctx.drawImage(logo, 32, 32, 72, 72); // Adjust the position and size as needed
 
-  var a = document.createElement("a");
   a.href = canvas.toDataURL("image/png");
   a.download = "piechart.png";
   a.click();
 }
 
 $(document).ready(function () {
-  console.log("Loading configuration: " + JSON.stringify(config));
-  // load the colour scheme
-  loadJsonInto(current, "colours", "colours/" + config.colours + ".json", function () { });
+  var sortable_label = $.fn.dataTable.absoluteOrder({
+    position: "bottom",
+    value: "other"
+  });
 
-  // load the available datasets, and the resources actually available from the dataset
+  // load the colour scheme
+  loadJsonInto(
+    current,
+    "colours",
+    "colours/" + config.colours + ".json",
+    () => undefined
+  );
+
+  // load the available datasets, and the resources actually
+  // available from the dataset
   loadAvailableDatasets();
 
   // load the available groups and colours
@@ -655,16 +746,19 @@ $(document).ready(function () {
   loadAvailableColours();
 
   embed();
-  var sortable_label = $.fn.dataTable.absoluteOrder(
-    { value: "other", position: "bottom" }
-  );
 
-  if (!$.fn.DataTable.isDataTable('#properties')) {
-    $('#properties').DataTable({
-      "columns": [
-        { "className": "property_label", "type": sortable_label },
-        { "className": "property_value" },
-        { "className": "property_value" }
+  if (!$.fn.DataTable.isDataTable("#properties")) {
+    $("#properties").DataTable({
+      "columns": [{
+        "className": "property_label",
+        "type": sortable_label
+      },
+      {
+        "className": "property_value"
+      },
+      {
+        "className": "property_value"
+      }
       ],
       //"info": true,
       "paging": false,
@@ -672,17 +766,20 @@ $(document).ready(function () {
     });
   }
 
-
-  var tooltip = document.getElementById("tooltip");
-
   circles.set("onGroupHover", function (hover) {
     if (hover.group) {
-      tooltip.innerHTML = escape(hover.group.label) + "<br>" + hover.group.weight.toFixed(1) + " " + current.unit;
-      if ("events" in hover.group) {
-        tooltip.innerHTML += "<br>" + (hover.group.events * 100.).toFixed(1) + "% events";
+      tooltip.innerHTML = escape(hover.group.label) +
+        "<br>" + hover.group.weight.toFixed(1) +
+        " " + current.unit;
+      if (hover.group.hasOwnProperty("events")) {
+        tooltip.innerHTML += "<br>" +
+          Number(hover.group.events * 100.0).toFixed(1) +
+          "% events";
       }
-      if ("ratio" in hover.group) {
-        tooltip.innerHTML += "<br>" + (hover.group.ratio * 100.).toFixed(1) + "% ratio";
+      if (hover.group.hasOwnProperty("ratio")) {
+        tooltip.innerHTML += "<br>" +
+          Number(hover.group.ratio * 100.0).toFixed(1) +
+          "% ratio";
       }
       tooltip.style.visibility = "visible";
     } else {
@@ -693,7 +790,8 @@ $(document).ready(function () {
 
 
 });
+
 document.onmousemove = function (event) {
   tooltip.style.top = (event.pageY + 16) + "px";
   tooltip.style.left = event.pageX + "px";
-}
+};
