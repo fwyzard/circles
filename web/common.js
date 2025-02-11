@@ -697,6 +697,14 @@ $(document).ready(function () {
 
 });
 document.onmousemove = function (event) {
-  tooltip.style.top = (event.pageY + 16) + "px";
-  tooltip.style.left = event.pageX + "px";
-}
+  tooltip.style.top = (
+    event.pageY + tooltip.clientHeight + 16 < document.body.clientHeight 
+    ? event.pageY + 16 + "px"
+    : event.pageY - tooltip.clientHeight - 5 + "px"
+  );
+  tooltip.style.left = (
+    event.pageX + tooltip.clientWidth < document.body.clientWidth
+    ? event.pageX + "px"
+    : document.body.clientWidth - tooltip.clientWidth + 5 + "px"
+  );
+};
