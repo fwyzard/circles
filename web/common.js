@@ -662,12 +662,20 @@ $(document).ready(function () {
     { value: "other", position: "bottom" }
   );
 
-  if (!$.fn.DataTable.isDataTable('#properties')) {
-    $('#properties').DataTable({
-      "columns": [
-        { "className": "property_label", "type": sortable_label },
-        { "className": "property_value" },
-        { "className": "property_value" }
+  if (!$.fn.DataTable.isDataTable("#properties")) {
+    $("#properties").dataTable({
+      "columns": [{
+        "className": "property_label",
+        "type": sortable_label
+      },
+      {
+        "className": "property_value",
+        "type": "any-number",
+        "targets": 0
+      },
+      {
+        "className": "property_value"
+      }
       ],
       //"info": true,
       "paging": false,
@@ -698,13 +706,13 @@ $(document).ready(function () {
 });
 document.onmousemove = function (event) {
   tooltip.style.top = (
-    event.pageY + tooltip.clientHeight + 16 < document.body.clientHeight 
-    ? event.pageY + 16 + "px"
-    : event.pageY - tooltip.clientHeight - 5 + "px"
+    event.pageY + tooltip.clientHeight + 16 < document.body.clientHeight
+      ? event.pageY + 16 + "px"
+      : event.pageY - tooltip.clientHeight - 5 + "px"
   );
   tooltip.style.left = (
     event.pageX + tooltip.clientWidth < document.body.clientWidth
-    ? event.pageX + "px"
-    : document.body.clientWidth - tooltip.clientWidth + 5 + "px"
+      ? event.pageX + "px"
+      : document.body.clientWidth - tooltip.clientWidth + 5 + "px"
   );
 };

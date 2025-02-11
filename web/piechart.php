@@ -17,7 +17,8 @@
     <!-- jQuery, DataTables, and plugins-->
     <link rel="stylesheet" type="text/css" href="DataTables/datatables.min.css"/>
     <script type="text/javascript" src="DataTables/datatables.min.js"></script>
-    <script type="text/javascript" src="DataTables/plug-ins/1.12.1/sorting/absolute.js"></script>
+    <script type="text/javascript" src="DataTables/plug-ins/sorting/absolute.js"></script>
+    <script type="text/javascript" src="DataTables/plug-ins/sorting/any-number.js"></script>
 
     <!-- load the available datasets, groups and colour schemes -->
     <script type="text/javascript">
