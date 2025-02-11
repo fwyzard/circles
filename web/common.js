@@ -697,7 +697,7 @@ function updateDataView() {
 }
 
 
-function getImage() {
+async function getImage() {
   var canvas1 = document
     .getElementById("visualization")
     .getElementsByTagName("canvas")[0];
@@ -718,9 +718,28 @@ function getImage() {
   ctx.drawImage(canvas2, 0, 0);
   ctx.drawImage(logo, 32, 32, 72, 72); // Adjust the position and size as needed
 
-  a.href = canvas.toDataURL("image/png");
-  a.download = "piechart.png";
-  a.click();
+  const image = await new Promise((res) => canvas.toBlob(res));
+  if (window.showSaveFilePicker) {
+    const handle = await self.showSaveFilePicker({
+      suggestedName: 'piechart.png',
+      types: [{
+        description: 'PNG file',
+        accept: {
+          'image/png': ['.png'],
+        },
+      }],
+    });
+    const writable = await handle.createWritable();
+    await writable.write(image);
+    writable.close();
+  }
+  else {
+    const saveImg = document.createElement("a");
+    saveImg.href = URL.createObjectURL(image);
+    saveImg.download = "piechart.png";
+    saveImg.click();
+    setTimeout(() => URL.revokeObjectURL(saveImg.href), 60000);
+  }
 }
 
 $(document).ready(function () {
