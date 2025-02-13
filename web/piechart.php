@@ -19,6 +19,7 @@
     <script type="text/javascript" src="DataTables/datatables.min.js"></script>
     <script type="text/javascript" src="DataTables/plug-ins/sorting/absolute.js"></script>
     <script type="text/javascript" src="DataTables/plug-ins/sorting/any-number.js"></script>
+    <script type="text/javascript" src="DataTables/plug-ins/dataRender/ellipsis.js"></script>
 
     <!-- load the available datasets, groups and colour schemes -->
     <script type="text/javascript">
