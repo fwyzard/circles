@@ -135,7 +135,7 @@ var _setup = function (values) {
                 b = b.replace(/[^\d\-\.]/g, '') * 1;
             }
         }
-        return a < b ? -1 : a > b ? 1 : 0;
+        return a.localeCompare(b, undefined, { sensitivity: 'accent' });
     };
     // Descending ordering method
     o.desc = function (a, b, isNumber) {
@@ -159,7 +159,7 @@ var _setup = function (values) {
                 b = b.replace(/[^\d\-\.]/g, '') * 1;
             }
         }
-        return a < b ? 1 : a > b ? -1 : 0;
+        return b.localeCompare(a, undefined, { sensitivity: 'accent' });
     };
     return o;
 };
