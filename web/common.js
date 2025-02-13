@@ -47,6 +47,7 @@ function parseGetData() {
 
 // load JSON data from the given URL, and sets the target's dataObject to it
 function loadJsonInto(target, attribute, url, then) {
+  console.log("Loading " + url);
   var xhttp = new XMLHttpRequest();
   xhttp.overrideMimeType("application/json");
   xhttp.open("GET", url);
@@ -109,6 +110,9 @@ function loadConfigFromURL() {
   }
   if (local_config.show_labels === null) {
     local_config.show_labels = true;
+  }
+  if (local_config.data_name === null) {
+    local_config.data_name = "data";
   }
   local_config.threshold = 0.0;
   return local_config;
