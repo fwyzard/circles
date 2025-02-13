@@ -594,6 +594,7 @@ function makeOrUpdateGroup(group, module) {
     data.weight += module[config.resource];
     // make sure that data.groups has an element wih the given label
     data.groups.forEach(function (element) {
+      element.id = element.label;
       if (element.label === label) {
         found = true;
         data = element;
@@ -828,3 +829,12 @@ document.onmousemove = function (event) {
       : document.body.clientWidth - tooltip.clientWidth + 5 + "px"
   );
 };
+
+$('#properties').on('click', 'tr', function(e) {
+  var table = $("#properties").DataTable();
+  var groupName = table.row(this).data()[0];
+  if (!e.shiftKey && !e.ctrlKey) {
+    circles.set("zoom", { all: true, zoomed: false });
+  }
+  circles.set("zoom", { groups: [groupName], zoomed: true });
+});
