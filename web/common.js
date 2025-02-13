@@ -546,6 +546,7 @@ function makeOrUpdateGroup(group, module) {
     var found = false;
     for (element of data.groups) {
       if (element.label == label) {
+        element.id = label;
         found = true;
         data = element;
         break;
@@ -748,3 +749,12 @@ document.onmousemove = function (event) {
       : document.body.clientWidth - tooltip.clientWidth + 5 + "px"
   );
 };
+
+$('#properties').on('click', 'tr', function(e) {
+  var table = $("#properties").DataTable();
+  var groupName = table.row(this).data()[0];
+  if (!e.shiftKey && !e.ctrlKey) {
+    circles.set("zoom", { all: true, zoomed: false });
+  }
+  circles.set("zoom", { groups: [groupName], zoomed: true });
+});
