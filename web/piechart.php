@@ -128,6 +128,10 @@
           <b>Show labels</b>
         </div>
         <div style="display:inline-block;">
+          <input type="checkbox" checked id="show_animations_checkbox" name="show_animations" onchange="updateShowAnimations()"></input>
+          <b>Show aminations</b>
+        </div>
+        <div style="display:inline-block;">
           <button type="button" onclick="getImage()">Download image</button>
         </div>
         <div style="display:inline-block;">
