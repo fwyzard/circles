@@ -184,7 +184,7 @@ function embed() {
     var sum;
     var value;
     table.clear();
-    $("#resource_title").text(current.title);
+    $(".property_value span.dt-column-title").text(current.title);
     $("#selected_label").text();
     $("#selected_value").text();
     $("#selected_percent").text();
@@ -783,7 +783,7 @@ $(document).ready(function () {
         "type": "any-number"
       },
       {
-        "className": "property_value"
+        "className": "property_fraction"
       }
       ],
       //"info": true,
