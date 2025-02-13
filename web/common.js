@@ -833,7 +833,14 @@ document.onmousemove = function (event) {
 $('#properties').on('click', 'tr', function(e) {
   var table = $("#properties").DataTable();
   var groupName = table.row(this).data()[0];
-  if (!e.shiftKey && !e.ctrlKey) {
+  var zoomed = circles.get("zoom")
+  for(var group of zoomed.groups) {
+    if(group.label === groupName) {
+      circles.set("zoom", { groups: [groupName], zoomed: false });
+      return;
+    }
+  }
+  if (!e.ctrlKey) {
     circles.set("zoom", { all: true, zoomed: false });
   }
   circles.set("zoom", { groups: [groupName], zoomed: true });

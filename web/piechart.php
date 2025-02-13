@@ -84,6 +84,15 @@
       #selected {
         font-style: italic;
       }
+
+      table.dataTable>tbody>tr {
+        cursor: pointer;
+      }
+
+      table.dataTable > tbody > tr:hover > *{
+        box-shadow: inset 0 0 0 9999px rgba(0, 0, 0, 0.035);
+        box-shadow: inset 0 0 0 9999px rgba(0,0,0, 0.035);
+      }
     </style>
 
   </head>
