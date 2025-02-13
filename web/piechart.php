@@ -82,6 +82,11 @@
         text-align: right;
       }
 
+      .property_fraction {
+        width:      20%;
+        text-align: right;
+      }
+
       #selected {
         font-style: italic;
       }
@@ -135,8 +140,8 @@
       <thead>
         <tr>
           <th class="property_label">Element</th>
-          <th id="resource_title" class="property_value">Resource</th>
-          <th class="property_value">Fraction</th>
+          <th class="property_value">Resource</th>
+          <th class="property_fraction">Fraction</th>
         </tr>
       </thead>
       <tbody>
@@ -145,7 +150,7 @@
         <tr id="selected">
           <td id="selected_label" class="property_label"></td>
           <td id="selected_value" class="property_value"></td>
-          <td id="selected_percent" class="property_value"></td>
+          <td id="selected_percent" class="property_fraction"></td>
         </tr>
       </tfoot>
       </table>

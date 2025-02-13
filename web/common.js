@@ -168,11 +168,11 @@ function embed() {
   circles.set("titleBarLabelDecorator", function (attrs) {
     var table = $('#properties').DataTable();
     table.clear();
-    $('#resource_title').text(current.title);
-    $('#selected_label').text();
-    $('#selected_value').text();
-    $('#selected_percent').text();
-    $('#selected').hide();
+    $(".property_value span.dt-column-title").text(current.title);
+    $("#selected_label").text();
+    $("#selected_value").text();
+    $("#selected_percent").text();
+    $("#selected").hide();
 
     var total = circles.get("dataObject").weight;
 
@@ -707,7 +707,7 @@ $(document).ready(function () {
         "type": "any-number"
       },
       {
-        "className": "property_value"
+        "className": "property_fraction"
       }
       ],
       //"info": true,
