@@ -11,6 +11,7 @@ var current = {
   metric: null, // description of the current mteric
   processing: false, // the new configuration is being processed
   show_labels: true,
+  show_animations: true,
   title: null, // column title associated to the current metric
   unit: null // unit associated to the current metric
 };
@@ -96,7 +97,8 @@ function loadConfigFromURL() {
     groups: null,
     local: false,
     resource: null,
-    show_labels: null
+    show_labels: null,
+    show_animations: null
   };
   var url = new URL(window.location.href);
   Object.keys(local_config).forEach(function (key) {
@@ -110,6 +112,9 @@ function loadConfigFromURL() {
   }
   if (local_config.show_labels === null) {
     local_config.show_labels = true;
+  }
+  if (local_config.show_animations === null) {
+    local_config.show_animations = true;
   }
   if (local_config.data_name === null) {
     local_config.data_name = "data";
@@ -163,6 +168,7 @@ function embed() {
   });
 
   installResizeHandlerFor(circles, 300);
+  updateAnimations();
 
   circles.set("groupColorDecorator", groupColorDecorator);
   circles.set("isGroupVisible", circlesVisibilityDecorator);
@@ -171,7 +177,6 @@ function embed() {
   circles.set("groupSelectionOutlineColor", "#cc0000aa");
   circles.set("groupSelectionOutlineWidth", 4);
   circles.set("groupSelectionOutlineStyle", "none"); // unused
-
 
   circles.set("titleBarLabelDecorator", function (attrs) {
     var table = $("#properties").DataTable();
@@ -417,14 +422,28 @@ function updateShowLabels() {
   updatePage();
 }
 
+function updateShowAnimations() {
+  var checkbox = document.getElementById("show_animations_checkbox");
+  var value = checkbox.checked;
+  config.show_animations = value;
+
+  // update the animations
+  updateAnimations();
+  updateURL();
+}
+
+
 // Update the title, URL, history and visualisation based on the current
 // configuration
-function updatePage() {
+function updateURL() {
   var title = (
     (config.local ? "local file" : config.dataset) + " - " + current.metric
   );
   window.history.pushState(config, title, convertConfigToURL(config));
   document.title = "CMSSW resource utilisation: " + title;
+}
+function updatePage() {
+  updateURL();
 
   // Handle navigation of the History
   window.onpopstate = function (event) {
@@ -433,6 +452,23 @@ function updatePage() {
   };
 
   updateDataView();
+}
+
+// Update the animations based on the current configuration
+function updateAnimations() {
+  if (!config.show_animations) {
+    circles.set("expandTime", 0);
+    circles.set("zoomTime", 0);
+    circles.set("rolloutTime", 0);
+    circles.set("pullbackTime", 0);
+    circles.set("updateTime", 0);
+  } else {
+    circles.set("expandTime", 1);
+    circles.set("zoomTime", 1);
+    circles.set("rolloutTime", 1);
+    circles.set("pullbackTime", 1);
+    circles.set("updateTime", 1);
+  }
 }
 
 // Load the available groupings
@@ -698,6 +734,7 @@ function updateDataView() {
     });
 
     circles.set("dataObject", current.data);
+
   }
 }
 
