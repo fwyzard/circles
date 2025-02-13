@@ -1,3 +1,27 @@
+// Current configuration
+var config = loadConfigFromURL();
+
+// Input data to parse and visualise
+var current = {
+  colours: null,
+  compiled: null,
+  data: null,
+  dataset: null,
+  groups: null,
+  metric: null, // description of the current mteric
+  processing: false, // the new configuration is being processed
+  show_labels: true,
+  show_animations: true,
+  title: null, // column title associated to the current metric
+  unit: null // unit associated to the current metric
+};
+
+// Circles data view
+var circles = null;
+
+var unassigned = [];
+
+var tooltip = document.getElementById("tooltip");
 
 function fixed(value) {
   return Number.parseFloat(value).toFixed(1);
@@ -63,7 +87,7 @@ function foamtreeVisibilityDecorator(properties, variables) {
 
 // Load the configuration from the URL
 function loadConfigFromURL() {
-  var config = {
+  var local_config = {
     colours: null,
     data_name: null,
     dataset: null,
@@ -71,23 +95,27 @@ function loadConfigFromURL() {
     groups: null,
     local: false,
     resource: null,
-    show_labels: null
+    show_labels: null,
+    show_animations: null
   };
   var url = new URL(window.location.href);
-  for (key in config) {
-    config[key] = url.searchParams.get(key);
+  for (key in local_config) {
+    local_config[key] = url.searchParams.get(key);
   }
-  if (config["data_name"] == null) {
-    config["data_name"] = data_name;
+  if (local_config["data_name"] == null) {
+    local_config["data_name"] = data_name;
   }
-  if (config.show_labels === null) {
-    config.show_labels = true;
+  if (local_config.show_labels === null) {
+    local_config.show_labels = true;
   }
-  if (config.data_name === null) {
-    config.data_name = "data";
+  if (local_config.show_animations === null) {
+    local_config.show_animations = true;
   }
-  config.threshold = 0.0;
-  return config;
+  if (local_config.data_name === null) {
+    local_config.data_name = "data";
+  }
+  local_config.threshold = 0.0;
+  return local_config;
 }
 
 // Write the configuration as URL parameters
@@ -155,6 +183,7 @@ function embed() {
   });
 
   installResizeHandlerFor(circles, 300);
+  updateAnimations();
 
   circles.set("groupColorDecorator", groupColorDecorator);
   circles.set("isGroupVisible", circlesVisibilityDecorator);
@@ -163,7 +192,6 @@ function embed() {
   circles.set("groupSelectionOutlineColor", "#cc0000aa");
   circles.set("groupSelectionOutlineWidth", 4);
   circles.set("groupSelectionOutlineStyle", "none"); // unused
-
 
   circles.set("titleBarLabelDecorator", function (attrs) {
     var table = $('#properties').DataTable();
@@ -381,11 +409,28 @@ function updateShowLabels() {
   updatePage();
 }
 
-// Update the title, URL, history and visualisation based on the current configuration
-function updatePage() {
-  var title = (config.local ? "local file" : config.dataset) + " - " + current.metric;
+function updateShowAnimations() {
+  var checkbox = document.getElementById("show_animations_checkbox");
+  var value = checkbox.checked;
+  config.show_animations = value;
+
+  // update the animations
+  updateAnimations();
+  updateURL();
+}
+
+
+// Update the title, URL, history and visualisation based on the current
+// configuration
+function updateURL() {
+  var title = (
+    (config.local ? "local file" : config.dataset) + " - " + current.metric
+  );
   window.history.pushState(config, title, convertConfigToURL(config));
   document.title = "CMSSW resource utilisation: " + title;
+}
+function updatePage() {
+  updateURL();
 
   // Handle navigation of the History
   window.onpopstate = function (event) {
@@ -394,6 +439,23 @@ function updatePage() {
   }
 
   updateDataView();
+}
+
+// Update the animations based on the current configuration
+function updateAnimations() {
+  if (!config.show_animations) {
+    circles.set("expandTime", 0);
+    circles.set("zoomTime", 0);
+    circles.set("rolloutTime", 0);
+    circles.set("pullbackTime", 0);
+    circles.set("updateTime", 0);
+  } else {
+    circles.set("expandTime", 1);
+    circles.set("zoomTime", 1);
+    circles.set("rolloutTime", 1);
+    circles.set("pullbackTime", 1);
+    circles.set("updateTime", 1);
+  }
 }
 
 // Load the available groupings
@@ -631,6 +693,7 @@ function updateDataView() {
     });
 
     circles.set("dataObject", current.data);
+
   }
 }
 
