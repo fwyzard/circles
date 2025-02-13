@@ -775,12 +775,12 @@ $(document).ready(function () {
     $("#properties").dataTable({
       "columns": [{
         "className": "property_label",
-        "type": sortable_label
+        "type": sortable_label,
+        "render": $.fn.dataTable.render.ellipsis(36)
       },
       {
         "className": "property_value",
-        "type": "any-number",
-        "targets": 0
+        "type": "any-number"
       },
       {
         "className": "property_value"
@@ -830,7 +830,7 @@ document.onmousemove = function (event) {
   );
 };
 
-$('#properties').on('click', 'tr', function(e) {
+$('#properties').on('click', 'tbody tr', function (e) {
   var table = $("#properties").DataTable();
   var groupName = table.row(this).data()[0];
   var zoomed = circles.get("zoom")
