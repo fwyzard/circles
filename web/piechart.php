@@ -637,10 +637,13 @@
           }
         }
         // add the module and its resource to the group
+        var label = "";
         if (current.show_labels || module.label == "other")
-          data.groups.push({ "label": module.label, "weight": module[config.resource], "events": module.events, "ratio": module.ratio});
-        else
-          data.groups.push({ "label": "", "weight": module[config.resource], "events": module.events, "ratio": module.ratio});
+          label = module.label
+        var entry = { "label": label, "weight": module[config.resource], "events": module.events };
+        if ("ratio" in module)
+          entry.ratio = module.ratio;
+        data.groups.push(entry);
         data.weight += module[config.resource];
       }
 
