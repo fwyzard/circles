@@ -72,6 +72,13 @@
         overflow: hidden;
       }
 
+       #visualization {
+        z-index: 1;}
+
+      .dataTable>tbody>tr{
+        cursor: pointer;
+      }
+
       .property_label {
         width:      60%;
         text-align: left;
@@ -85,6 +92,10 @@
       .property_fraction {
         width:      20%;
         text-align: right;
+      }
+
+      .selectedGroupRow {
+        background-color: #e0e0e0 !important;
       }
 
       #selected {
@@ -182,6 +193,7 @@
           font-size: 16px;
           text-shadow: 0px 1px 1px #000;
           color: #ffffff;
+          z-index: 9999;
       }
     </style>
 
