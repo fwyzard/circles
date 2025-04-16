@@ -359,9 +359,7 @@ function updateMetrics() {
   var index = menu.selectedIndex;
   config.resource = menu.options[index].value;
   current.metric = menu.options[index].text;
-  current.unit = " " + menu.options[index].dataset.unit;
-  current.title = menu.options[index].dataset.title;
-  if (current.unit == null || current.title == null) {
+  if (menu.options[index].dataset.unit === undefined || menu.options[index].dataset.title === undefined) {
     if (config.resource.startsWith("hs23_")) {
       current.unit = " HS23/Hz";
       current.title = "Capacity";
@@ -375,6 +373,9 @@ function updateMetrics() {
       current.unit = "";
       current.title = "";
     }
+  } else {
+    current.unit = " " + menu.options[index].dataset.unit;
+    current.title = menu.options[index].dataset.title;
   }
   updatePage();
 }
