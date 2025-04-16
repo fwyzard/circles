@@ -801,8 +801,25 @@ $(document).ready(function () {
     }
   });
 
-
 });
+
+async function colorZoomed(){
+  var table = $("#properties").DataTable();
+  table.$("tr.selectedGroupRow").removeClass("selectedGroupRow");
+  var zoomed = circles.get("zoom");
+  for (var group of zoomed.groups) {
+    var groupName = group.label;
+    var tableDiv = document.querySelector(".dataTable");
+    var rows = tableDiv.querySelectorAll("tbody tr");
+    for (var tr of rows) {
+      var td = tr.querySelector("td.property_label");
+      if (td.innerText == groupName) {
+        tr.classList.add("selectedGroupRow");
+      }
+    }
+  }
+}
+
 document.onmousemove = function (event) {
   tooltip.style.top = (
     event.pageY + tooltip.clientHeight + 16 < document.body.clientHeight
@@ -830,4 +847,10 @@ $('#properties').on('click', 'tbody tr', function (e) {
     circles.set("zoom", { all: true, zoomed: false });
   }
   circles.set("zoom", { groups: [groupName], zoomed: true });
+  colorZoomed();
+});
+
+// Whenever the table changes, update the zoom
+$('#properties').on('draw.dt', function () {
+  colorZoomed();
 });
