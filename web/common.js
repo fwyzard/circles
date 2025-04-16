@@ -256,11 +256,12 @@ function embed() {
 // Load the available datasets
 function loadAvailableDatasets() {
   var menu = document.getElementById("dataset_menu");
-  while (menu.length) {
-    menu.remove(0);
+  while (menu.options.length > 1) {
+    menu.remove(1);
   }
-  for (var i = 0; i < datasets.length; i++) {
-    if ((config.filter != null) && (!datasets[i].includes(config.filter))) {
+  menu.selectedIndex = 0;
+  for (var i = 0; i < datasets.length; i += 1) {
+    if ((config.filter !== null) && (!datasets[i].includes(config.filter))) {
       continue;
     }
     var entry = document.createElement("option");
@@ -273,7 +274,7 @@ function loadAvailableDatasets() {
   }
   console.log(menu.selectedIndex);
   // if a dataset is selected, load it and the associated resources
-  if (menu.selectedIndex != null) {
+  if (menu.selectedIndex !== 0) {
     updateDataset();
   }
 }
@@ -429,6 +430,7 @@ function updateURL() {
   window.history.pushState(config, title, convertConfigToURL(config));
   document.title = "CMSSW resource utilisation: " + title;
 }
+
 function updatePage() {
   updateURL();
 
@@ -816,7 +818,14 @@ document.onmousemove = function (event) {
 $('#properties').on('click', 'tbody tr', function (e) {
   var table = $("#properties").DataTable();
   var groupName = table.row(this).data()[0];
-  if (!e.shiftKey && !e.ctrlKey) {
+  var zoomed = circles.get("zoom")
+  for (var group of zoomed.groups) {
+    if (group.label === groupName) {
+      circles.set("zoom", { groups: [groupName], zoomed: false });
+      return;
+    }
+  }
+  if (!e.ctrlKey) {
     circles.set("zoom", { all: true, zoomed: false });
   }
   circles.set("zoom", { groups: [groupName], zoomed: true });
