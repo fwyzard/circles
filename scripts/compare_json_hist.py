@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import argparse
 import json
-import math
 import re
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.patches import Patch
 
 
 # ------------------------
-# Your augment_json (unchanged except partition fix)
+# Mapping / augmentation
 # ------------------------
 def augment_json(input_data, group_data, debug):
+    """
+    Augment each module by adding 'expanded' = '<Package>|<Type>|<Label>'.
+    If a module doesn't match any rule, assign package 'Unassigned'.
+    Wildcards: '*' and '?' in the map are supported (shell/glob-like).
+    """
     groups = []
     for raw_pattern, group in group_data.items():
         pattern = str(raw_pattern)
@@ -39,11 +46,11 @@ def augment_json(input_data, group_data, debug):
         found = False
         mtype = module.get("type", "")
         mlabel = module.get("label", "")
-        for g in groups:
-            if (g[0] is None or g[0].match(mtype)) and (
-                g[1] is None or g[1].match(mlabel)
+        for ctype_rx, label_rx, group in groups:
+            if (ctype_rx is None or ctype_rx.match(mtype)) and (
+                label_rx is None or label_rx.match(mlabel)
             ):
-                module["expanded"] = "|".join([g[2], mtype, mlabel])
+                module["expanded"] = "|".join([group, mtype, mlabel])
                 found = True
                 break
         if not found:
@@ -74,7 +81,6 @@ def load_colors(path: Optional[Path]) -> Dict[str, str]:
         return {}
     with path.open("r") as f:
         raw = json.load(f)
-    # normalize keys/values to strings
     return {str(k): str(v) for k, v in raw.items()}
 
 
@@ -148,7 +154,6 @@ def _clamp01(x: float) -> float:
 def adjust_lightness(hex_color: str, factor: float) -> str:
     """factor >1 -> lighter, <1 -> darker."""
     r, g, b = to_rgb(hex_color)
-    # blend toward 1 (white) for lighten or 0 for darken
     if factor >= 1:
         r = r + (1 - r) * (factor - 1)
         g = g + (1 - g) * (factor - 1)
@@ -185,10 +190,7 @@ def cat_to_package(
         mapping[k][pkg] = mapping[k].get(pkg, 0.0) + v
     out: Dict[str, str] = {}
     for k, d in mapping.items():
-        if not d:
-            out[k] = "Unassigned"
-        else:
-            out[k] = max(d.items(), key=lambda x: x[1])[0]
+        out[k] = max(d.items(), key=lambda x: x[1])[0] if d else "Unassigned"
     return out
 
 
@@ -196,12 +198,10 @@ def color_for_category(
     cat: str, level: str, pkg_of_cat: str, colors: Dict[str, str]
 ) -> str:
     base = pick_base_color(pkg_of_cat, colors)
-    if level == "package":  # exact package color
+    if level == "package":
         return base
-    # produce a stable variation per category
-    h = abs(hash(cat)) % 997  # stable within session
-    # lightness factor between ~0.85 and ~1.25
-    factor = 0.85 + (h / 997.0) * 0.40
+    h = abs(hash(cat)) % 997
+    factor = 0.85 + (h / 997.0) * 0.40  # ~0.85..1.25
     return adjust_lightness(base, factor)
 
 
@@ -268,6 +268,9 @@ def bar_panels(
     truncate: Optional[int],
     fontsize: int,
     style: str,
+    level: str,
+    package_top: str,
+    outline_width: float,
     save: Optional[Path],
     show: bool,
 ):
@@ -276,87 +279,147 @@ def bar_panels(
         return
 
     x = list(range(len(cats)))
-    width = 0.42
-
     fig = plt.figure(figsize=(max(10, len(cats) * 0.45), 7))
     gs = fig.add_gridspec(2, 1, height_ratios=[2, 1.2], hspace=0.28)
 
-    # Top panel: grouped bars A and B
+    # ---- Top panel ----
     ax1 = fig.add_subplot(gs[0, 0])
 
-    if style == "outline":
-        # A: white fill + colored edge; B: solid fill
-        ax1.bar(
-            [i - width / 2 for i in x],
-            A,
-            width=width,
-            facecolor="white",
-            edgecolor=edge_colors,
-            linewidth=0.8,
-            label=f"A: {name_a}",
-        )
-        ax1.bar(
-            [i + width / 2 for i in x],
-            B,
-            width=width,
-            color=colors_B,
-            edgecolor="none",
-            label=f"B: {name_b}",
-        )
-    else:  # hatch
-        ax1.bar(
-            [i - width / 2 for i in x],
-            A,
-            width=width,
-            color=colors_A,
-            hatch="///",
-            edgecolor="black",
-            label=f"A: {name_a}",
-        )
-        ax1.bar(
-            [i + width / 2 for i in x],
-            B,
-            width=width,
-            color=colors_B,
-            hatch="\\\\\\\\",
-            edgecolor="black",
-            label=f"B: {name_b}",
+    if level == "package" and package_top == "stacked":
+        # Two bars (A & B), each stacked by package composition.
+        x2 = [0, 1]
+        ax1.set_xticks(x2)
+        ax1.set_xticklabels(
+            [name_a, name_b], rotation=0, ha="center", fontsize=fontsize
         )
 
-    ax1.set_ylabel(metric_label)
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(
-        maybe_truncate(cats, truncate), rotation=rotate, ha="right", fontsize=fontsize
-    )
-    # Build style-based legend so colors/patterns are correct and stable
-    if style == "outline":
-        # A: white fill + black contour (thin)
-        handle_A = Patch(
-            facecolor="white", edgecolor="black", linewidth=0.8, label=f"A: {name_a}"
-        )
-        # B: generic solid swatch (neutral gray) to indicate "filled"
-        handle_B = Patch(facecolor="0.6", edgecolor="none", label=f"B: {name_b}")
-    else:  # hatch style
-        handle_A = Patch(
-            facecolor="white", hatch="///", edgecolor="black", label=f"A: {name_a}"
-        )
-        handle_B = Patch(
-            facecolor="white", hatch="\\\\\\\\", edgecolor="black", label=f"B: {name_b}"
-        )
+        bottomA = 0.0
+        bottomB = 0.0
+        for i, pkg in enumerate(cats):
+            segA = A[i]
+            segB = B[i]
+            seg_fill = colors_B[i]  # package color
 
-    ax1.legend(handles=[handle_A, handle_B], loc="best")
+            ax1.bar(
+                0,
+                segA,
+                bottom=bottomA,
+                width=0.6,
+                color=seg_fill,
+                edgecolor="black",
+                linewidth=0.4,
+            )
+            ax1.bar(
+                1,
+                segB,
+                bottom=bottomB,
+                width=0.6,
+                color=seg_fill,
+                edgecolor="black",
+                linewidth=0.4,
+            )
 
-    ax1.grid(axis="y", linestyle=":", alpha=0.5)
+            bottomA += segA
+            bottomB += segB
 
-    # Bottom panel: difference bars (use B color family)
+        # Increase Y-axis limit to give space for legend
+        max_height = max(bottomA, bottomB)
+        ax1.set_ylim(0, max_height * 1.15)  # 15% extra space
+
+    else:
+        # GROUPED per-category bars
+        width = 0.42
+        if style == "outline":
+            ax1.bar(
+                [i - width / 2 for i in x],
+                A,
+                width=width,
+                facecolor="white",
+                edgecolor=edge_colors,
+                linewidth=outline_width,
+                label=f"A: {name_a}",
+            )
+            ax1.bar(
+                [i + width / 2 for i in x],
+                B,
+                width=width,
+                color=colors_B,
+                edgecolor="none",
+                label=f"B: {name_b}",
+            )
+        else:
+            ax1.bar(
+                [i - width / 2 for i in x],
+                A,
+                width=width,
+                color=colors_A,
+                hatch="///",
+                edgecolor="black",
+                label=f"A: {name_a}",
+            )
+            ax1.bar(
+                [i + width / 2 for i in x],
+                B,
+                width=width,
+                color=colors_B,
+                hatch="\\\\\\\\",
+                edgecolor="black",
+                label=f"B: {name_b}",
+            )
+
+        ax1.set_ylabel(metric_label)
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(
+            maybe_truncate(cats, truncate),
+            rotation=rotate,
+            ha="right",
+            fontsize=fontsize,
+        )
+        ax1.grid(axis="y", linestyle=":", alpha=0.5)
+
+        # Series-style legend via proxies
+        if style == "outline":
+            handle_A = Patch(
+                facecolor="white",
+                edgecolor="black",
+                linewidth=outline_width,
+                label=f"A: {name_a}",
+            )
+            handle_B = Patch(facecolor="0.6", edgecolor="none", label=f"B: {name_b}")
+        else:
+            handle_A = Patch(
+                facecolor="white", hatch="///", edgecolor="black", label=f"A: {name_a}"
+            )
+            handle_B = Patch(
+                facecolor="white",
+                hatch="\\\\\\\\",
+                edgecolor="black",
+                label=f"B: {name_b}",
+            )
+        ax1.legend(handles=[handle_A, handle_B], loc="best")
+
+    # ---- Bottom panel: differences per category ----
     ax2 = fig.add_subplot(gs[1, 0])
     ax2.bar(x, D, color=colors_B, edgecolor="black", linewidth=0.6)
     ax2.axhline(0, linestyle="--", linewidth=1)
     ax2.set_ylabel(f"Δ(B−A) {metric_label}")
-    ax2.set_xticks(x)
-    ax2.set_xticklabels(
-        maybe_truncate(cats, truncate), rotation=rotate, ha="right", fontsize=fontsize
-    )
+    if level == "package" and package_top == "stacked":
+        # bottom uses package categories on x-axis
+        ax2.set_xticks(range(len(cats)))
+        ax2.set_xticklabels(
+            maybe_truncate(cats, truncate),
+            rotation=rotate,
+            ha="right",
+            fontsize=fontsize,
+        )
+    else:
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(
+            maybe_truncate(cats, truncate),
+            rotation=rotate,
+            ha="right",
+            fontsize=fontsize,
+        )
     ax2.grid(axis="y", linestyle=":", alpha=0.5)
 
     if title:
@@ -377,10 +440,12 @@ def bar_panels(
 # ------------------------
 def main():
     p = argparse.ArgumentParser(
-        description="Compare two timing JSONs using a grouping JSON (augment_json) and plot grouped bar charts, with package colors."
+        description="Compare two timing JSONs using a grouping JSON (augment_json) and plot bar charts with package colors."
     )
     p.add_argument("json_a", type=Path, help="First timing JSON")
     p.add_argument("json_b", type=Path, help="Second timing JSON")
+
+    # Mapping & colors
     p.add_argument(
         "--map",
         type=Path,
@@ -388,7 +453,10 @@ def main():
         help="Grouping JSON (TypeGlob|LabelGlob -> Package)",
     )
     p.add_argument(
-        "--colors", type=Path, default=None, help="Colors JSON mapping Package -> HEX"
+        "--colors",
+        type=Path,
+        default=None,
+        help="Colors JSON mapping Package -> HEX (e.g. '#1f77b4')",
     )
     p.add_argument(
         "--debug-map",
@@ -396,6 +464,7 @@ def main():
         help="Print failures from augment_json for unmapped modules.",
     )
 
+    # Metrics / x-axis
     p.add_argument(
         "-m", "--metric", default="time_real", help="Metric to use (default: time_real)"
     )
@@ -408,14 +477,17 @@ def main():
         "--level",
         choices=["package", "type", "label", "expanded"],
         default="label",
-        help="What to put on the X-axis (default: label)",
+        help="X-axis categories (default: label)",
     )
 
+    # Filters (after augmentation)
     p.add_argument(
-        "--package", default=None, help="Filter: exact package (from 'expanded')"
+        "--package", default=None, help="Keep only modules in this exact package"
     )
     p.add_argument(
-        "--package-regex", default=None, help="Filter: regex on package name"
+        "--package-regex",
+        default=None,
+        help="Keep modules whose package matches this regex",
     )
     p.add_argument(
         "--require-map",
@@ -423,11 +495,12 @@ def main():
         help="Drop modules with package 'Unassigned'",
     )
 
+    # Sorting / trimming / labels
     p.add_argument(
         "--sort-by",
         choices=["A", "B", "diff", "max", "sum"],
         default="B",
-        help="Sorting key (default: B)",
+        help="Sort categories by this key (default: B)",
     )
     p.add_argument(
         "--top", type=int, default=None, help="Show only top N categories after sorting"
@@ -450,13 +523,29 @@ def main():
         default=9,
         help="Font size for x-axis tick labels (default 9)",
     )
+
+    # Style & package-level top panel mode
     p.add_argument(
         "--style",
         choices=["outline", "hatch"],
         default="outline",
-        help="How to distinguish A vs B bars (default: outline)",
+        help="Distinguish A vs B: outline (A white + border, B solid) or hatch (different hatches)",
+    )
+    p.add_argument(
+        "--outline-width",
+        type=float,
+        default=0.8,
+        help="Line width for outline style (default: 0.8)",
+    )
+    p.add_argument(
+        "--package-top",
+        choices=["stacked", "grouped"],
+        default="stacked",
+        help="When level=package: top shows two stacked bars by package composition; "
+        "otherwise grouped per-package bars",
     )
 
+    # Output
     p.add_argument("--title", default=None)
     p.add_argument(
         "--save",
@@ -497,31 +586,26 @@ def main():
     agg_b = aggregate(mods_b, args.metric, args.per_event, args.level)
     cats, Avals, Bvals, Dvals = align_for_bars(agg_a, agg_b)
 
-    # Sorting / top
+    # Sort + top
     order = sort_indices(cats, Avals, Bvals, Dvals, args.sort_by)
     cats, Avals, Bvals, Dvals = apply_top(cats, Avals, Bvals, Dvals, order, args.top)
 
-    # Prepare colors per category
-    # Determine dominant package for each category (for label/type levels)
-    pkg_for_cat = (
-        {c: c for c in cats}
-        if args.level == "package"
-        else cat_to_package(
+    # Colors per category
+    if args.level == "package":
+        pkg_for_cat = {c: c for c in cats}
+    else:
+        pkg_for_cat = cat_to_package(
             cats, args.level, mods_a, mods_b, args.metric, args.per_event
         )
-    )
 
-    colors_A = []
-    colors_B = []
-    edge_colors = []
+    colors_A, colors_B, edge_colors = [], [], []
     for c in cats:
         base_pkg = pkg_for_cat.get(c, "others")
-        col_base = pick_base_color(base_pkg, color_map)
-        col_var = color_for_category(c, args.level, base_pkg, color_map)
-        # B uses the base/var color; A uses the same family (outline shows on edge)
-        colors_B.append(col_var)
-        colors_A.append(col_var)
-        edge_colors.append(col_base)  # outline edge uses the exact base package color
+        base_hex = pick_base_color(base_pkg, color_map)
+        varied_hex = color_for_category(c, args.level, base_pkg, color_map)
+        colors_B.append(varied_hex)
+        colors_A.append(varied_hex)
+        edge_colors.append(base_hex)  # outline edge uses exact package color
 
     metric_label = args.metric + (" (per event)" if args.per_event else "")
     subtitle_bits = [f"level={args.level}"]
@@ -550,6 +634,9 @@ def main():
         truncate=None if args.truncate == 0 else args.truncate,
         fontsize=args.label_fontsize,
         style=args.style,
+        level=args.level,
+        package_top=args.package_top,
+        outline_width=args.outline_width,
         save=args.save,
         show=not args.no_show,
     )
