@@ -3,7 +3,7 @@ set -euo pipefail
 
 # --------- CONFIG YOU CAN TWEAK ---------
 # Path to your Python comparer (the augmented, bar-chart version)
-TOOL="compare_json_hist.py"
+TOOL="compare_json_hist_augmented.py"
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 # Default chart options
@@ -100,6 +100,7 @@ echo "[1/2] Making overall package-level comparison -> $overall_png"
   "${common_flags[@]}" \
   --level package --sort-by diff --top "$TOP_PACKAGES" \
   --title "Timing by package ($([[ "$PER_EVENT" == "1" ]] && echo 'per-event' || echo 'raw')): ${baseA} vs ${baseB}" \
+  --colors colours.json --style outline \
   --save "$overall_png" --no-show
 
 # 2) Per-package comparisons at LABEL level
@@ -120,6 +121,8 @@ for pkg in "${PACKAGES[@]}"; do
     "${common_flags[@]}" \
     --level label --package "$pkg" --sort-by diff --top "$TOP_LABELS" \
     --title "Timing by label (${pkg}; $([[ "$PER_EVENT" == "1" ]] && echo 'per-event' || echo 'raw')): ${baseA} vs ${baseB}" \
+    --colors colours.json --style outline \
+    --label-fontsize 6 --rotate 20 --truncate 25 \
     --save "$out_png" --no-show
 done
 

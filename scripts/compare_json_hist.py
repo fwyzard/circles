@@ -5,64 +5,51 @@ import math
 import re
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
-
 import matplotlib.pyplot as plt
+from matplotlib.colors import to_rgb, to_hex
+from matplotlib.patches import Patch
 
 
+# ------------------------
+# Your augment_json (unchanged except partition fix)
+# ------------------------
 def augment_json(input_data, group_data, debug):
-    """
-    Augment each module by adding 'expanded' = '<Package>|<Type>|<Label>'.
-    If a module doesn't match any rule, assign package 'Unassigned'.
-    Wildcards: '*' and '?' in the map are supported (shell-like).
-    """
-
     groups = []
     for raw_pattern, group in group_data.items():
-        # Be tolerant of non-string keys
         pattern = str(raw_pattern)
-
-        # Split on the FIRST '|' only: "Type|LabelPattern"
         ctype, sep, label = pattern.partition("|")
-        if sep == "":  # no '|' found: treat as label-only pattern
+        if sep == "":
             ctype = ""
             label = pattern
-
-        # Trim whitespace
         ctype = ctype.strip()
         label = label.strip()
-
-        # Convert shell wildcards to regex, anchor to end
-        ctype_rx = (
+        ctype = (
             re.compile(ctype.replace("?", ".").replace("*", ".*") + "$")
             if ctype
             else None
         )
-        label_rx = (
+        label = (
             re.compile(label.replace("?", ".").replace("*", ".*") + "$")
             if label
             else None
         )
-
-        groups.append([ctype_rx, label_rx, str(group)])
+        groups.append([ctype, label, str(group)])
 
     for module in input_data.get("modules", []):
         found = False
         mtype = module.get("type", "")
         mlabel = module.get("label", "")
-
-        for ctype_rx, label_rx, group in groups:
-            if (ctype_rx is None or ctype_rx.match(mtype)) and (
-                label_rx is None or label_rx.match(mlabel)
+        for g in groups:
+            if (g[0] is None or g[0].match(mtype)) and (
+                g[1] is None or g[1].match(mlabel)
             ):
-                module["expanded"] = "|".join([group, mtype, mlabel])
+                module["expanded"] = "|".join([g[2], mtype, mlabel])
                 found = True
                 break
-
         if not found:
             if debug:
                 print(f"Failed to parse {module}")
             module["expanded"] = "|".join(["Unassigned", mtype, mlabel])
-
     return input_data
 
 
@@ -77,15 +64,22 @@ def load_full_json(path: Path) -> Dict:
     return data
 
 
-def load_grouping(path: Optional[Path]) -> Optional[Dict]:
-    if path is None:
-        return None
+def load_grouping(path: Path) -> Dict:
     with path.open("r") as f:
         return json.load(f)
 
 
+def load_colors(path: Optional[Path]) -> Dict[str, str]:
+    if not path:
+        return {}
+    with path.open("r") as f:
+        raw = json.load(f)
+    # normalize keys/values to strings
+    return {str(k): str(v) for k, v in raw.items()}
+
+
 # ------------------------
-# Metric and keys
+# Metric & keys
 # ------------------------
 def numeric_metric(m: Dict, metric: str, per_event: bool) -> Optional[float]:
     if metric not in m:
@@ -102,10 +96,8 @@ def numeric_metric(m: Dict, metric: str, per_event: bool) -> Optional[float]:
 
 
 def package_from_expanded(m: Dict) -> str:
-    exp = m.get("expanded", None)
-    if not exp:
-        return "Unassigned"
-    return exp.split("|", 1)[0] if "|" in exp else exp
+    exp = m.get("expanded", "")
+    return exp.split("|", 1)[0] if "|" in exp else "Unassigned"
 
 
 def key_for_level(m: Dict, level: str) -> str:
@@ -117,7 +109,7 @@ def key_for_level(m: Dict, level: str) -> str:
         return package_from_expanded(m)
     if level == "expanded":
         return str(m.get("expanded", "Unassigned|?|?"))
-    raise ValueError("level must be one of: label, type, package, expanded")
+    raise ValueError("level must be one of: package, type, label, expanded")
 
 
 # ------------------------
@@ -144,6 +136,73 @@ def align_for_bars(
     B = [agg_b.get(c, 0.0) for c in cats]
     D = [b - a for a, b in zip(A, B)]
     return cats, A, B, D
+
+
+# ------------------------
+# Colors
+# ------------------------
+def _clamp01(x: float) -> float:
+    return 0.0 if x < 0 else 1.0 if x > 1 else x
+
+
+def adjust_lightness(hex_color: str, factor: float) -> str:
+    """factor >1 -> lighter, <1 -> darker."""
+    r, g, b = to_rgb(hex_color)
+    # blend toward 1 (white) for lighten or 0 for darken
+    if factor >= 1:
+        r = r + (1 - r) * (factor - 1)
+        g = g + (1 - g) * (factor - 1)
+        b = b + (1 - b) * (factor - 1)
+    else:
+        r = r * factor
+        g = g * factor
+        b = b * factor
+    return to_hex((_clamp01(r), _clamp01(g), _clamp01(b)))
+
+
+def pick_base_color(package: str, cmap: Dict[str, str]) -> str:
+    return cmap.get(package, cmap.get("others", "#cccccc"))
+
+
+def cat_to_package(
+    cats: List[str],
+    level: str,
+    mods_a: List[Dict],
+    mods_b: List[Dict],
+    metric: str,
+    per_event: bool,
+) -> Dict[str, str]:
+    """Determine a dominant package for each category (for type/label levels)."""
+    mapping: Dict[str, Dict[str, float]] = {c: {} for c in cats}
+    for m in mods_a + mods_b:
+        v = numeric_metric(m, metric, per_event)
+        if v is None:
+            continue
+        k = key_for_level(m, level)
+        if k not in mapping:
+            continue
+        pkg = package_from_expanded(m)
+        mapping[k][pkg] = mapping[k].get(pkg, 0.0) + v
+    out: Dict[str, str] = {}
+    for k, d in mapping.items():
+        if not d:
+            out[k] = "Unassigned"
+        else:
+            out[k] = max(d.items(), key=lambda x: x[1])[0]
+    return out
+
+
+def color_for_category(
+    cat: str, level: str, pkg_of_cat: str, colors: Dict[str, str]
+) -> str:
+    base = pick_base_color(pkg_of_cat, colors)
+    if level == "package":  # exact package color
+        return base
+    # produce a stable variation per category
+    h = abs(hash(cat)) % 997  # stable within session
+    # lightness factor between ~0.85 and ~1.25
+    factor = 0.85 + (h / 997.0) * 0.40
+    return adjust_lightness(base, factor)
 
 
 # ------------------------
@@ -197,6 +256,9 @@ def bar_panels(
     A: List[float],
     B: List[float],
     D: List[float],
+    colors_A: List[str],
+    colors_B: List[str],
+    edge_colors: List[str],
     metric_label: str,
     title: Optional[str],
     subtitle: Optional[str],
@@ -205,6 +267,7 @@ def bar_panels(
     rotate: int,
     truncate: Optional[int],
     fontsize: int,
+    style: str,
     save: Optional[Path],
     show: bool,
 ):
@@ -220,19 +283,74 @@ def bar_panels(
 
     # Top panel: grouped bars A and B
     ax1 = fig.add_subplot(gs[0, 0])
-    ax1.bar([i - width / 2 for i in x], A, width=width, label=f"A: {name_a}")
-    ax1.bar([i + width / 2 for i in x], B, width=width, label=f"B: {name_b}")
+
+    if style == "outline":
+        # A: white fill + colored edge; B: solid fill
+        ax1.bar(
+            [i - width / 2 for i in x],
+            A,
+            width=width,
+            facecolor="white",
+            edgecolor=edge_colors,
+            linewidth=0.8,
+            label=f"A: {name_a}",
+        )
+        ax1.bar(
+            [i + width / 2 for i in x],
+            B,
+            width=width,
+            color=colors_B,
+            edgecolor="none",
+            label=f"B: {name_b}",
+        )
+    else:  # hatch
+        ax1.bar(
+            [i - width / 2 for i in x],
+            A,
+            width=width,
+            color=colors_A,
+            hatch="///",
+            edgecolor="black",
+            label=f"A: {name_a}",
+        )
+        ax1.bar(
+            [i + width / 2 for i in x],
+            B,
+            width=width,
+            color=colors_B,
+            hatch="\\\\\\\\",
+            edgecolor="black",
+            label=f"B: {name_b}",
+        )
+
     ax1.set_ylabel(metric_label)
     ax1.set_xticks(x)
     ax1.set_xticklabels(
         maybe_truncate(cats, truncate), rotation=rotate, ha="right", fontsize=fontsize
     )
-    ax1.legend(loc="best")
+    # Build style-based legend so colors/patterns are correct and stable
+    if style == "outline":
+        # A: white fill + black contour (thin)
+        handle_A = Patch(
+            facecolor="white", edgecolor="black", linewidth=0.8, label=f"A: {name_a}"
+        )
+        # B: generic solid swatch (neutral gray) to indicate "filled"
+        handle_B = Patch(facecolor="0.6", edgecolor="none", label=f"B: {name_b}")
+    else:  # hatch style
+        handle_A = Patch(
+            facecolor="white", hatch="///", edgecolor="black", label=f"A: {name_a}"
+        )
+        handle_B = Patch(
+            facecolor="white", hatch="\\\\\\\\", edgecolor="black", label=f"B: {name_b}"
+        )
+
+    ax1.legend(handles=[handle_A, handle_B], loc="best")
+
     ax1.grid(axis="y", linestyle=":", alpha=0.5)
 
-    # Bottom panel: difference bars
+    # Bottom panel: difference bars (use B color family)
     ax2 = fig.add_subplot(gs[1, 0])
-    ax2.bar(x, D)
+    ax2.bar(x, D, color=colors_B, edgecolor="black", linewidth=0.6)
     ax2.axhline(0, linestyle="--", linewidth=1)
     ax2.set_ylabel(f"Δ(B−A) {metric_label}")
     ax2.set_xticks(x)
@@ -259,17 +377,18 @@ def bar_panels(
 # ------------------------
 def main():
     p = argparse.ArgumentParser(
-        description="Compare two timing JSONs using a grouping JSON (augment_json) and plot grouped bar charts."
+        description="Compare two timing JSONs using a grouping JSON (augment_json) and plot grouped bar charts, with package colors."
     )
     p.add_argument("json_a", type=Path, help="First timing JSON")
     p.add_argument("json_b", type=Path, help="Second timing JSON")
-
-    # Grouping / augmentation
     p.add_argument(
         "--map",
         type=Path,
         required=True,
-        help="Grouping JSON (keys like 'TypeGlob|LabelGlob' -> 'PackageName'). Required for augmentation.",
+        help="Grouping JSON (TypeGlob|LabelGlob -> Package)",
+    )
+    p.add_argument(
+        "--colors", type=Path, default=None, help="Colors JSON mapping Package -> HEX"
     )
     p.add_argument(
         "--debug-map",
@@ -277,7 +396,6 @@ def main():
         help="Print failures from augment_json for unmapped modules.",
     )
 
-    # Metrics and x-axis
     p.add_argument(
         "-m", "--metric", default="time_real", help="Metric to use (default: time_real)"
     )
@@ -293,16 +411,11 @@ def main():
         help="What to put on the X-axis (default: label)",
     )
 
-    # Optional filters on the augmented data
     p.add_argument(
-        "--package",
-        default=None,
-        help="Keep only modules with this exact package (from 'expanded')",
+        "--package", default=None, help="Filter: exact package (from 'expanded')"
     )
     p.add_argument(
-        "--package-regex",
-        default=None,
-        help="Keep only modules whose package matches this regex",
+        "--package-regex", default=None, help="Filter: regex on package name"
     )
     p.add_argument(
         "--require-map",
@@ -310,21 +423,20 @@ def main():
         help="Drop modules with package 'Unassigned'",
     )
 
-    # Sorting / trimming / labels
     p.add_argument(
         "--sort-by",
         choices=["A", "B", "diff", "max", "sum"],
         default="B",
-        help="Sort categories by this (default: B)",
+        help="Sorting key (default: B)",
     )
     p.add_argument(
-        "--top", type=int, default=None, help="Keep only top N categories after sorting"
+        "--top", type=int, default=None, help="Show only top N categories after sorting"
     )
     p.add_argument(
         "--truncate",
         type=int,
         default=48,
-        help="Truncate tick labels to N chars (0 disables; default 48)",
+        help="Truncate tick labels to N chars (0 disables)",
     )
     p.add_argument(
         "--rotate",
@@ -336,10 +448,15 @@ def main():
         "--label-fontsize",
         type=int,
         default=9,
-        help="Font size for x-axis tick labels (default: 9)",
+        help="Font size for x-axis tick labels (default 9)",
+    )
+    p.add_argument(
+        "--style",
+        choices=["outline", "hatch"],
+        default="outline",
+        help="How to distinguish A vs B bars (default: outline)",
     )
 
-    # Output
     p.add_argument("--title", default=None)
     p.add_argument(
         "--save",
@@ -351,44 +468,62 @@ def main():
 
     args = p.parse_args()
 
-    # Load base files
+    # Load base files and colors
     data_a = load_full_json(args.json_a)
     data_b = load_full_json(args.json_b)
     group_data = load_grouping(args.map)
+    color_map = load_colors(args.colors)
 
-    # Augment using user's function
+    # Augment
     data_a = augment_json(data_a, group_data, args.debug_map)
     data_b = augment_json(data_b, group_data, args.debug_map)
-
     mods_a = data_a["modules"]
     mods_b = data_b["modules"]
 
-    # Apply package-based filters (after augmentation)
+    # Filters
     if args.require_map:
         mods_a = [m for m in mods_a if package_from_expanded(m) != "Unassigned"]
         mods_b = [m for m in mods_b if package_from_expanded(m) != "Unassigned"]
-
     if args.package:
         mods_a = [m for m in mods_a if package_from_expanded(m) == args.package]
         mods_b = [m for m in mods_b if package_from_expanded(m) == args.package]
-
     if args.package_regex:
         rx = re.compile(args.package_regex)
         mods_a = [m for m in mods_a if rx.search(package_from_expanded(m))]
         mods_b = [m for m in mods_b if rx.search(package_from_expanded(m))]
 
-    # Aggregate by chosen level
+    # Aggregate
     agg_a = aggregate(mods_a, args.metric, args.per_event, args.level)
     agg_b = aggregate(mods_b, args.metric, args.per_event, args.level)
-
     cats, Avals, Bvals, Dvals = align_for_bars(agg_a, agg_b)
 
-    # Sort + take top
+    # Sorting / top
     order = sort_indices(cats, Avals, Bvals, Dvals, args.sort_by)
     cats, Avals, Bvals, Dvals = apply_top(cats, Avals, Bvals, Dvals, order, args.top)
 
-    metric_label = args.metric + (" (per event)" if args.per_event else "")
+    # Prepare colors per category
+    # Determine dominant package for each category (for label/type levels)
+    pkg_for_cat = (
+        {c: c for c in cats}
+        if args.level == "package"
+        else cat_to_package(
+            cats, args.level, mods_a, mods_b, args.metric, args.per_event
+        )
+    )
 
+    colors_A = []
+    colors_B = []
+    edge_colors = []
+    for c in cats:
+        base_pkg = pkg_for_cat.get(c, "others")
+        col_base = pick_base_color(base_pkg, color_map)
+        col_var = color_for_category(c, args.level, base_pkg, color_map)
+        # B uses the base/var color; A uses the same family (outline shows on edge)
+        colors_B.append(col_var)
+        colors_A.append(col_var)
+        edge_colors.append(col_base)  # outline edge uses the exact base package color
+
+    metric_label = args.metric + (" (per event)" if args.per_event else "")
     subtitle_bits = [f"level={args.level}"]
     if args.package:
         subtitle_bits.append(f"package == {args.package!r}")
@@ -403,6 +538,9 @@ def main():
         Avals,
         Bvals,
         Dvals,
+        colors_A=colors_A,
+        colors_B=colors_B,
+        edge_colors=edge_colors,
         metric_label=metric_label,
         title=args.title,
         subtitle=subtitle,
@@ -411,6 +549,7 @@ def main():
         rotate=args.rotate,
         truncate=None if args.truncate == 0 else args.truncate,
         fontsize=args.label_fontsize,
+        style=args.style,
         save=args.save,
         show=not args.no_show,
     )
