@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.patches import Patch
