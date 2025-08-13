@@ -20,24 +20,6 @@ TOP_LABELS="${TOP_LABELS:-15}"     # top N labels per package
 ROTATE="${ROTATE:-60}"
 LABEL_FONTSIZE="${LABEL_FONTSIZE:-6}"
 
-# If you don't pass a packages file (4th arg), use this inline list:
-# (Put exact package names as they appear in your mapping value)
-PACKAGES_DEFAULT=(
-  "Tracking"
-  "Pixels"
-  "Vertices"
-  "Unassigned"
-  "HGCal"
-  "Muons"
-  "E/Gamma"
-  "Jets"
-  "MET"
-  "Taus"
-  "Particle Flow"
-  "DQM"
-)
-# ----------------------------------------
-
 usage() {
   cat <<EOF
 Usage: $0 <runA.json> <runB.json> <mapping.json> <out_dir> [packages.txt]
@@ -116,7 +98,8 @@ if [[ -n "$PKGFILE" ]]; then
   # Read packages from file (non-empty lines)
   mapfile -t PACKAGES < <(grep -v '^[[:space:]]*$' "$PKGFILE")
 else
-  PACKAGES=("${PACKAGES_DEFAULT[@]}")
+  # Read the packages from the JSON groups
+  mapfile -t PACKAGES < <(grep '".*": *".*"' "$MAP" | cut -d'"' -f4 | cut -d '|' -f1 | sort -u | grep -v '^$')
 fi
 
 echo "[2/2] Making per-label comparisons for ${#PACKAGES[@]} packages…"
