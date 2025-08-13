@@ -17,12 +17,16 @@ from matplotlib.patches import Patch
 # ------------------------
 def augment_json(input_data, group_data, debug):
     """
-    Augment each module by adding 'expanded' = '<Package>|<Type>|<Label>'.
-    If a module doesn't match any rule, assign package 'Unassigned'.
-    Wildcards: '*' and '?' in the map are supported (shell/glob-like).
+    Get the input json via input_data and augment it by adding a new key to
+    each element, named 'expanded', that will combine the information coming
+    from the input json and from the grouping json. All modules that cannot be
+    found in the original group_data will be assigned to the macro package
+    "Unassigned". The separator between the different fields is '|'.
     """
+
     groups = []
     for raw_pattern, group in group_data.items():
+        # tolerant: accept non-string keys, and split on the FIRST pipe only
         pattern = str(raw_pattern)
         ctype, sep, label = pattern.partition("|")
         if sep == "":
@@ -57,6 +61,7 @@ def augment_json(input_data, group_data, debug):
             if debug:
                 print(f"Failed to parse {module}")
             module["expanded"] = "|".join(["Unassigned", mtype, mlabel])
+
     return input_data
 
 
@@ -84,20 +89,31 @@ def load_colors(path: Optional[Path]) -> Dict[str, str]:
     return {str(k): str(v) for k, v in raw.items()}
 
 
+def get_total_events(data: Dict) -> float:
+    """Return the total number of events from the file-level 'total' block (fallback 1)."""
+    try:
+        tot = data.get("total", {})
+        ev = float(tot.get("events", 0))
+        return ev if ev > 0 else 1.0
+    except Exception:
+        return 1.0
+
+
 # ------------------------
 # Metric & keys
 # ------------------------
-def numeric_metric(m: Dict, metric: str, per_event: bool) -> Optional[float]:
+def numeric_metric(
+    m: Dict, metric: str, per_event: bool, total_events: float
+) -> Optional[float]:
+    """Return module metric, optionally normalized by the FILE total events (not per-module)."""
     if metric not in m:
         return None
     try:
         val = float(m[metric])
     except Exception:
         return None
-    if per_event:
-        ev = m.get("events", None)
-        if ev and ev > 0:
-            val = val / float(ev)
+    if per_event and total_events > 0:
+        val = val / total_events
     return val
 
 
@@ -122,11 +138,11 @@ def key_for_level(m: Dict, level: str) -> str:
 # Aggregation & alignment
 # ------------------------
 def aggregate(
-    mods: List[Dict], metric: str, per_event: bool, level: str
+    mods: List[Dict], metric: str, per_event: bool, level: str, total_events: float
 ) -> Dict[str, float]:
     agg: Dict[str, float] = {}
     for m in mods:
-        v = numeric_metric(m, metric, per_event)
+        v = numeric_metric(m, metric, per_event, total_events)
         if v is None:
             continue
         k = key_for_level(m, level)
@@ -176,11 +192,13 @@ def cat_to_package(
     mods_b: List[Dict],
     metric: str,
     per_event: bool,
+    total_events_a: float,
+    total_events_b: float,
 ) -> Dict[str, str]:
     """Determine a dominant package for each category (for type/label levels)."""
     mapping: Dict[str, Dict[str, float]] = {c: {} for c in cats}
-    for m in mods_a + mods_b:
-        v = numeric_metric(m, metric, per_event)
+    for m in mods_a:
+        v = numeric_metric(m, metric, per_event, total_events_a)
         if v is None:
             continue
         k = key_for_level(m, level)
@@ -188,6 +206,16 @@ def cat_to_package(
             continue
         pkg = package_from_expanded(m)
         mapping[k][pkg] = mapping[k].get(pkg, 0.0) + v
+    for m in mods_b:
+        v = numeric_metric(m, metric, per_event, total_events_b)
+        if v is None:
+            continue
+        k = key_for_level(m, level)
+        if k not in mapping:
+            continue
+        pkg = package_from_expanded(m)
+        mapping[k][pkg] = mapping[k].get(pkg, 0.0) + v
+
     out: Dict[str, str] = {}
     for k, d in mapping.items():
         out[k] = max(d.items(), key=lambda x: x[1])[0] if d else "Unassigned"
@@ -271,6 +299,7 @@ def bar_panels(
     level: str,
     package_top: str,
     outline_width: float,
+    stack_key: str,
     save: Optional[Path],
     show: bool,
 ):
@@ -295,11 +324,28 @@ def bar_panels(
 
         bottomA = 0.0
         bottomB = 0.0
-        for i, pkg in enumerate(cats):
+
+        # Stacking order: draw smaller layers first and bigger last so the biggest |Δ| is on TOP.
+        def _key_for(i):
+            if stack_key == "A":
+                return A[i]
+            if stack_key == "B":
+                return B[i]
+            if stack_key == "max":
+                return max(A[i], B[i])
+            if stack_key == "sum":
+                return A[i] + B[i]
+            # default: abs diff
+            return abs(D[i])
+
+        stack_order = sorted(range(len(cats)), key=_key_for)  # ascending
+
+        for i in stack_order:
             segA = A[i]
             segB = B[i]
             seg_fill = colors_B[i]  # package color
 
+            # A & B segments: both filled with same package color; thin edge for separation
             ax1.bar(
                 0,
                 segA,
@@ -325,6 +371,16 @@ def bar_panels(
         # Increase Y-axis limit to give space for legend
         max_height = max(bottomA, bottomB)
         ax1.set_ylim(0, max_height * 1.15)  # 15% extra space
+
+        ax1.set_ylabel(metric_label)
+        ax1.grid(axis="y", linestyle=":", alpha=0.5)
+
+        # Legend: package colors
+        pkg_handles = [
+            Patch(facecolor=colors_B[i], edgecolor="black", label=cats[i])
+            for i in range(len(cats))
+        ]
+        ax1.legend(handles=pkg_handles, loc="center left", bbox_to_anchor=(1, 0.5))
 
     else:
         # GROUPED per-category bars
@@ -403,23 +459,10 @@ def bar_panels(
     ax2.bar(x, D, color=colors_B, edgecolor="black", linewidth=0.6)
     ax2.axhline(0, linestyle="--", linewidth=1)
     ax2.set_ylabel(f"Δ(B−A) {metric_label}")
-    if level == "package" and package_top == "stacked":
-        # bottom uses package categories on x-axis
-        ax2.set_xticks(range(len(cats)))
-        ax2.set_xticklabels(
-            maybe_truncate(cats, truncate),
-            rotation=rotate,
-            ha="right",
-            fontsize=fontsize,
-        )
-    else:
-        ax2.set_xticks(x)
-        ax2.set_xticklabels(
-            maybe_truncate(cats, truncate),
-            rotation=rotate,
-            ha="right",
-            fontsize=fontsize,
-        )
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(
+        maybe_truncate(cats, truncate), rotation=rotate, ha="right", fontsize=fontsize
+    )
     ax2.grid(axis="y", linestyle=":", alpha=0.5)
 
     if title:
@@ -471,7 +514,7 @@ def main():
     p.add_argument(
         "--per-event",
         action="store_true",
-        help="Divide metric by each module's 'events'",
+        help="Divide metric by the FILE's total events (not per-module)",
     )
     p.add_argument(
         "--level",
@@ -529,7 +572,7 @@ def main():
         "--style",
         choices=["outline", "hatch"],
         default="outline",
-        help="Distinguish A vs B: outline (A white + border, B solid) or hatch (different hatches)",
+        help="Distinguish A vs B in grouped views: outline (A white+border, B solid) or hatch (different hatches)",
     )
     p.add_argument(
         "--outline-width",
@@ -541,8 +584,13 @@ def main():
         "--package-top",
         choices=["stacked", "grouped"],
         default="stacked",
-        help="When level=package: top shows two stacked bars by package composition; "
-        "otherwise grouped per-package bars",
+        help="When level=package: top shows two stacked bars by package composition; else grouped per-package bars",
+    )
+    p.add_argument(
+        "--stack-sort-by",
+        choices=["diff", "A", "B", "max", "sum"],
+        default="diff",
+        help="For stacked composition, order packages & stack layers by this key (default: diff=|B-A|)",
     )
 
     # Output
@@ -563,6 +611,10 @@ def main():
     group_data = load_grouping(args.map)
     color_map = load_colors(args.colors)
 
+    # Total events (file-level) for correct per-event normalization
+    total_events_a = get_total_events(data_a)
+    total_events_b = get_total_events(data_b)
+
     # Augment
     data_a = augment_json(data_a, group_data, args.debug_map)
     data_b = augment_json(data_b, group_data, args.debug_map)
@@ -581,13 +633,19 @@ def main():
         mods_a = [m for m in mods_a if rx.search(package_from_expanded(m))]
         mods_b = [m for m in mods_b if rx.search(package_from_expanded(m))]
 
-    # Aggregate
-    agg_a = aggregate(mods_a, args.metric, args.per_event, args.level)
-    agg_b = aggregate(mods_b, args.metric, args.per_event, args.level)
+    # Aggregate (note: normalization uses file total events)
+    agg_a = aggregate(mods_a, args.metric, args.per_event, args.level, total_events_a)
+    agg_b = aggregate(mods_b, args.metric, args.per_event, args.level, total_events_b)
     cats, Avals, Bvals, Dvals = align_for_bars(agg_a, agg_b)
 
-    # Sort + top
-    order = sort_indices(cats, Avals, Bvals, Dvals, args.sort_by)
+    # Sort + top: in stacked composition, force order by abs diff so bottom plot starts with largest |Δ|
+    if args.level == "package" and args.package_top == "stacked":
+        order = sort_indices(
+            cats, Avals, Bvals, Dvals, args.stack_sort_by
+        )  # default 'diff'
+    else:
+        order = sort_indices(cats, Avals, Bvals, Dvals, args.sort_by)
+
     cats, Avals, Bvals, Dvals = apply_top(cats, Avals, Bvals, Dvals, order, args.top)
 
     # Colors per category
@@ -595,7 +653,14 @@ def main():
         pkg_for_cat = {c: c for c in cats}
     else:
         pkg_for_cat = cat_to_package(
-            cats, args.level, mods_a, mods_b, args.metric, args.per_event
+            cats,
+            args.level,
+            mods_a,
+            mods_b,
+            args.metric,
+            args.per_event,
+            total_events_a,
+            total_events_b,
         )
 
     colors_A, colors_B, edge_colors = [], [], []
@@ -637,6 +702,7 @@ def main():
         level=args.level,
         package_top=args.package_top,
         outline_width=args.outline_width,
+        stack_key=args.stack_sort_by,
         save=args.save,
         show=not args.no_show,
     )
