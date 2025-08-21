@@ -133,6 +133,13 @@
         <div style="display:inline-block;">
           <b>Colour style</b>
           <select id="colours_menu" name="colours" onchange="updateColours()"></select>
+	      </div>
+        <div style="display:inline-block;">
+          <b>View</b>
+          <select id="view_menu" onchange="switchChartView()">
+            <option value="pie">Pie</option>
+            <option value="bar">Bar</option>
+          </select>
         </div>
         <div style="display:inline-block;">
           <input type="checkbox" checked id="show_labels_checkbox" name="show_labels" onchange="updateShowLabels()"></input>
@@ -140,7 +147,7 @@
         </div>
         <div style="display:inline-block;">
           <input type="checkbox" checked id="show_animations_checkbox" name="show_animations" onchange="updateShowAnimations()"></input>
-          <b>Show aminations</b>
+          <b>Show animations</b>
         </div>
         <div style="display:inline-block;">
           <button type="button" onclick="getImage()">Download image</button>

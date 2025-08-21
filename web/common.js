@@ -854,3 +854,26 @@ $('#properties').on('click', 'tbody tr', function (e) {
 $('#properties').on('draw.dt', function () {
   colorZoomed();
 });
+
+// Switch between bar and pie chart pages preserving state
+function switchChartView(){
+  var sel = document.getElementById('view_menu').value;
+  var target = (sel === 'pie') ? 'piechart.php' : 'barchart.php';
+  // Preserve current configuration
+  var cfg = {
+    data_name: config.data_name,
+    dataset: config.dataset,
+    resource: config.resource,
+    colours: config.colours,
+    groups: config.groups,
+    show_labels: config.show_labels
+  };
+  var params=[];
+  for (var k in cfg){
+    if (cfg[k] != null && cfg[k] !== '') params.push(encodeURIComponent(k)+"="+encodeURIComponent(cfg[k]));
+  }
+  // Avoid redirect loops (already on desired page)
+  var currentPage = window.location.pathname.split('/').pop();
+    if ((sel==='bar' && currentPage==='barchart.php') || (sel==='pie' && currentPage==='piechart.php')) return;
+      window.location.href = target + (params.length ? "?"+params.join("&") : "");
+}
