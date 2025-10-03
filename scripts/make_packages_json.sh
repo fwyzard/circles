@@ -26,8 +26,16 @@ fi
 echo '{'
 cd $CMSSW_RELEASE_BASE/src
 {
-  grep -r "^ *$REGEX" */*/plugins */*/src */*/interface | sed -e"s#\(\w\+\)/\(\w\+\)/.*: *$REGEX *( *\(.*::\)\?\([a-zA-Z0-9_<>:]\+\) *).*#  \"\5|\": \"\1|\2\",#"
-  grep -r "^ *$ALPAKA_REGEX" */*/plugins/alpaka */*/src/alpaka */*/interface/alpaka | sed -e"s#\(\w\+\)/\(\w\+\)/.*: *$ALPAKA_REGEX *( *\(.*::\)\?\([a-zA-Z0-9_<>:]\+\) *).*#  \"\5@alpaka|\": \"\1|\2\",#"
+  grep "^ *$REGEX\>" \
+    -r */*/plugins */*/src */*/interface \
+    --exclude MakerMacros.h \
+    --exclude ModuleFactory.h \
+    | sed -e"s#\(\w\+\)/\(\w\+\)/.*: *$REGEX *( *\(.*::\)\?\([a-zA-Z0-9_<>:]\+\) *).*#  \"\5|\": \"\1|\2\",#"
+  grep "^ *$ALPAKA_REGEX\>" \
+    -r */*/plugins/alpaka */*/src/alpaka */*/interface/alpaka \
+    --exclude MakerMacros.h \
+    --exclude ModuleFactory.h \
+    | sed -e"s#\(\w\+\)/\(\w\+\)/.*: *$ALPAKA_REGEX *( *\(.*::\)\?\([a-zA-Z0-9_<>:]\+\) *).*#  \"\5@alpaka|\": \"\1|\2\",#"
   echo '  "PathStatusInserter|": "FWCore|Framework",'
   echo '  "EndPathStatusInserter|": "FWCore|Framework",'
   echo '  "TriggerResultInserter|": "FWCore|Framework",'
