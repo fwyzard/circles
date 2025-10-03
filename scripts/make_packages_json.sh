@@ -11,7 +11,7 @@
 # groups of a circles piechart.
 # Optionally start from an existing JSON file, and print the resulting group file.
 
-MACROS="DEFINE_FWK_MODULE DEFINE_FWK_INPUT_SOURCE DEFINE_FWK_VECTOR_INPUT_SOURCE"
+MACROS="DEFINE_FWK_MODULE DEFINE_FWK_INPUT_SOURCE DEFINE_FWK_VECTOR_INPUT_SOURCE DEFINE_FWK_EVENTSETUP_MODULE"
 REGEX="\($(echo $MACROS | sed -e's/ \+/\\|/g')\)"
 UPDATE=
 
