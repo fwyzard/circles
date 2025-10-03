@@ -13,8 +13,11 @@
 
 MACROS="DEFINE_FWK_MODULE DEFINE_FWK_INPUT_SOURCE DEFINE_FWK_VECTOR_INPUT_SOURCE DEFINE_FWK_EVENTSETUP_MODULE DEFINE_FWK_EVENTSETUP_SOURCE"
 REGEX="\($(echo $MACROS | sed -e's/ \+/\\|/g')\)"
-UPDATE=
 
+ALPAKA_MACROS="DEFINE_FWK_ALPAKA_MODULE DEFINE_FWK_EVENTSETUP_ALPAKA_MODULE"
+ALPAKA_REGEX="\($(echo $ALPAKA_MACROS | sed -e's/ \+/\\|/g')\)"
+
+UPDATE=
 if [ "$1" == "-u" ] && [ -f "$2" ]; then
   UPDATE=$(realpath "$2")
   shift 2
@@ -24,6 +27,7 @@ echo '{'
 cd $CMSSW_RELEASE_BASE/src
 {
   grep -r "^ *$REGEX" */*/plugins */*/src */*/interface | sed -e"s#\(\w\+\)/\(\w\+\)/.*: *$REGEX *( *\(.*::\)\?\([a-zA-Z0-9_<>:]\+\) *).*#  \"\5|\": \"\1|\2\",#"
+  grep -r "^ *$ALPAKA_REGEX" */*/plugins/alpaka */*/src/alpaka */*/interface/alpaka | sed -e"s#\(\w\+\)/\(\w\+\)/.*: *$ALPAKA_REGEX *( *\(.*::\)\?\([a-zA-Z0-9_<>:]\+\) *).*#  \"\5@alpaka|\": \"\1|\2\",#"
   echo '  "PathStatusInserter|": "FWCore|Framework",'
   echo '  "EndPathStatusInserter|": "FWCore|Framework",'
   echo '  "TriggerResultInserter|": "FWCore|Framework",'
