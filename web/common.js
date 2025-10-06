@@ -175,7 +175,7 @@ function embed() {
     id: "visualization",
     captureMouseEvents: false,
     pixelRatio: Math.min(2, window.devicePixelRatio || 1),
-    visibleGroupCount: 0,
+    visibleGroupCount: 6,
     showZeroWeightGroups: false,
     titleBar: "inscribed",
     titleBarTextColor: "#444",
