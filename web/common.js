@@ -572,7 +572,14 @@ function findGroup(module) {
     unassigned.push({ type: module.type, label: module.label });
   }
 
-  return group.split("|");
+  var groupArray = group.split("|");
+  
+  // Add record as an additional ring level if it exists and is not empty
+  if (module.record && module.record !== "") {
+    groupArray.push(module.record);
+  }
+  
+  return groupArray;
 }
 
 // group is an array of nested group labels,
@@ -629,6 +636,8 @@ function makeOrUpdateGroup(group, module) {
   var entry = { "label": label, "weight": module[config.resource], "events": module.events };
   if ("ratio" in module)
     entry.ratio = module.ratio;
+  if (module.record && module.record !== "")
+    entry.record = module.record;
   data.groups.push(entry);
   data.weight += module[config.resource];
 }
@@ -793,6 +802,9 @@ $(document).ready(function () {
       }
       if ("ratio" in hover.group) {
         tooltip.innerHTML += "<br>" + (hover.group.ratio * 100.).toFixed(1) + "% ratio";
+      }
+      if ("record" in hover.group && hover.group.record !== "") {
+        tooltip.innerHTML += "<br>Record: " + escape(hover.group.record);
       }
       tooltip.style.visibility = "visible";
     } else {
