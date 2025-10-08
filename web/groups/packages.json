@@ -4198,6 +4198,7 @@
   "ProducerMHT|": "L1Trigger|TrackerTFP",
   "ProducerPP|": "L1Trigger|TrackerTFP",
   "ProducerSetup|": "L1Trigger|TrackTrigger",
+  "tt::ProducerSetup|": "L1Trigger|TrackTrigger",
   "ProducerTBout|": "L1Trigger|TrackFindingTracklet",
   "ProducerTFP|": "L1Trigger|TrackFindingTracklet",
   "ProducerTM|": "L1Trigger|TrackFindingTracklet",
