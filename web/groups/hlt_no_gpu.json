@@ -722,7 +722,7 @@
   "SiStripClusterizerFromRaw|": "Tracking",
   "SiStripExcludedFEDListProducer|": "Tracking",
   "SiStripRawToDigiModule|": "Tracking",
-  "SiStripRecHitConverter|hltSiStripRecHits|": "Tracking",
+  "SiStripRecHitConverter|hltSiStripRecHits": "Tracking",
   "SoftKillerProducer|": "Jets/MET",
   "SoftLepton|": "B tagging",
   "StandAloneMuonProducer|": "Muons",

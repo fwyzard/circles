@@ -722,7 +722,7 @@
   "SiStripClusterizerFromRaw|": "Full track and vertex",
   "SiStripExcludedFEDListProducer|": "Full track and vertex",
   "SiStripRawToDigiModule|": "Full track and vertex",
-  "SiStripRecHitConverter|hltSiStripRecHits|": "Full track and vertex",
+  "SiStripRecHitConverter|hltSiStripRecHits": "Full track and vertex",
   "SoftKillerProducer|": "Jets/MET",
   "SoftLepton|": "others",
   "StandAloneMuonProducer|": "Muons",
