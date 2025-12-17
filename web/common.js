@@ -685,7 +685,9 @@ function updateDataView() {
     console.log("Unassigned modules:");
     console.table(unassigned);
   }
-  normalise(current.data, current.dataset.total.events);
+  if (config.resource.startsWith("time_") || config.resource.startsWith("mem_")) {
+    normalise(current.data, current.dataset.total.events);
+  }
 
   for (key in current.colours) {
     group = getGroup(key.split("|"));
