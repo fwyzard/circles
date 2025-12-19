@@ -603,6 +603,43 @@ function getGroup(group) {
 // group is an array of nested group labels,
 // e.g. [ "GPU", "Pixels", "PixelTrackProducer" ]
 function makeOrUpdateGroup(group, module) {
+// output from ModuleALlocEventMonitor
+  if ("record" in module && module.record !== "") {
+    var data = current.data;
+    data.elements = 0;
+    for (label of group) {
+      data.weight += module[config.resource];
+      var found = false;
+      for (element of data.groups) {
+        if (element.label == label) {
+          element.id = label;
+          found = true;
+          data = element;
+          break;
+        }
+      }
+      if (!found) {
+        var len = data.groups.push({ "label": label, "weight": 0., "groups": [] })
+        data = data.groups[len - 1];
+      }
+    }
+    if (! data.groups) {
+      data.groups = [];
+      var len = data.groups.push({ "label": label, "weight": 0., "groups": [] })
+   //   data = data.groups[len - 1];
+    }
+  // add the module and its resource to the group
+    var label = "";
+    if (current.show_labels || module.label == "other")
+      label = module.record;
+    var entry = { "label": label, "weight": module[config.resource], "events": module.events };
+    if ("ratio" in module)
+      entry.ratio = module.ratio;
+    entry.record = module.record;
+    data.groups.push(entry);
+    data.weight += module[config.resource];
+  }
+  else {
   // data should always have a "groups" property of array type
   var data = current.data;
   data.elements = 0
@@ -631,10 +668,9 @@ function makeOrUpdateGroup(group, module) {
   var entry = { "label": label, "weight": module[config.resource], "events": module.events };
   if ("ratio" in module)
     entry.ratio = module.ratio;
-  if (module.record && module.record !== "")
-    entry.record = module.record;
   data.groups.push(entry);
   data.weight += module[config.resource];
+  }
 }
 
 function normalise(data, events) {
@@ -679,6 +715,8 @@ function updateDataView() {
   for (module of current.dataset.modules) {
     var group = findGroup(module);
     group.push(module.type);
+    if ("record" in module && module.record !== "")
+      group.push(module.label);
     makeOrUpdateGroup(group, module);
   }
   if (unassigned.length) {
