@@ -574,11 +574,6 @@ function findGroup(module) {
 
   var groupArray = group.split("|");
   
-  // Add record as an additional ring level if it exists and is not empty
-  if (module.record && module.record !== "") {
-    groupArray.push(module.record);
-  }
-  
   return groupArray;
 }
 
