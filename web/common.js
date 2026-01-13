@@ -685,7 +685,7 @@ function updateDataView() {
     console.log("Unassigned modules:");
     console.table(unassigned);
   }
-  if (config.resource.startsWith("time_") || config.resource.startsWith("mem_")) {
+  if (current.dataset.total.events) {
     normalise(current.data, current.dataset.total.events);
   }
 
@@ -794,7 +794,7 @@ $(document).ready(function () {
   circles.set("onGroupHover", function (hover) {
     if (hover.group) {
       tooltip.innerHTML = escape(hover.group.label) + "<br>" + hover.group.weight.toFixed(1) + " " + current.unit;
-      if ("events" in hover.group) {
+      if (hover.group.events) {
         tooltip.innerHTML += "<br>" + (hover.group.events * 100.).toFixed(1) + "% events";
       }
       if ("ratio" in hover.group) {
