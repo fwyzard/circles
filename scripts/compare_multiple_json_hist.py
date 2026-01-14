@@ -9,7 +9,7 @@ from typing import List, Dict, Tuple, Optional
 from collections import defaultdict, OrderedDict
 
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.colors import to_rgb, to_hex
 from matplotlib.patches import Patch
@@ -17,123 +17,7 @@ from matplotlib.patches import Patch
 import mplhep as hep
 hep.style.use("CMS")
 
-# ------------------------
-# Mapping / augmentation
-# ------------------------
-def augment_json(input_data, group_data, debug):
-    """
-    Add key 'expanded' = 'Package|type|label' to each module.
-    First match wins. Unmatched -> 'Unassigned|type|label'
-    """
-    groups = []
-    for raw_pattern, group in group_data.items():
-        pattern = str(raw_pattern)
-        ctype, sep, label = pattern.partition("|")
-        if sep == "":
-            ctype = ""
-            label = pattern
-        ctype = ctype.strip()
-        label = label.strip()
-        ctype = re.compile(ctype.replace("?", ".").replace("*", ".*") + "$") if ctype else None
-        label = re.compile(label.replace("?", ".").replace("*", ".*") + "$") if label else None
-        groups.append([ctype, label, str(group)])
-
-    for module in input_data.get("modules", []):
-        found = False
-        mtype = module.get("type", "")
-        mlabel = module.get("label", "")
-        for ctype_rx, label_rx, group in groups:
-            if (ctype_rx is None or ctype_rx.match(mtype)) and (label_rx is None or label_rx.match(mlabel)):
-                module["expanded"] = "|".join([group, mtype, mlabel])
-                found = True
-                break
-        if not found:
-            if debug:
-                print(f"Failed to map module: type={mtype} label={mlabel}")
-            module["expanded"] = "|".join(["Unassigned", mtype, mlabel])
-
-    return input_data
-
-
-# ------------------------
-# I/O helpers
-# ------------------------
-def load_full_json(path: Path) -> Dict:
-    with path.open("r") as f:
-        data = json.load(f)
-    if "modules" not in data or not isinstance(data["modules"], list):
-        raise ValueError(f"{path} does not contain a top-level 'modules' list")
-    return data
-
-
-def load_grouping(path: Path) -> Dict:
-    with path.open("r") as f:
-        # preserve JSON order: first rule wins
-        return json.load(f, object_pairs_hook=OrderedDict)
-
-
-def load_colors(path: Optional[Path]) -> Dict[str, str]:
-    if not path:
-        return {}
-    with path.open("r") as f:
-        raw = json.load(f)
-    return {str(k): str(v) for k, v in raw.items()}
-
-
-def get_total_events(data: Dict) -> float:
-    try:
-        tot = data.get("total", {})
-        ev = float(tot.get("events", 0))
-        return ev if ev > 0 else 1.0
-    except Exception:
-        return 1.0
-
-
-# ------------------------
-# Metric & keys
-# ------------------------
-def numeric_metric(m: Dict, metric: str, per_event: bool, total_events: float) -> Optional[float]:
-    if metric not in m:
-        return None
-    try:
-        val = float(m[metric])
-    except Exception:
-        return None
-    if per_event and total_events > 0:
-        val = val / total_events
-    return val
-
-
-def package_from_expanded(m: Dict) -> str:
-    exp = m.get("expanded", "")
-    return exp.split("|", 1)[0] if "|" in exp else "Unassigned"
-
-
-def key_for_level(m: Dict, level: str) -> str:
-    if level == "label":
-        return str(m.get("label", ""))
-    if level == "type":
-        return str(m.get("type", ""))
-    if level == "package":
-        return package_from_expanded(m)
-    if level == "expanded":
-        return str(m.get("expanded", "Unassigned|?|?"))
-    raise ValueError("level must be one of: package, type, label, expanded")
-
-
-# ------------------------
-# Aggregation
-# ------------------------
-def aggregate(mods: List[Dict], metric: str, per_event: bool, level: str, total_events: float) -> Dict[str, float]:
-    agg: Dict[str, float] = {}
-    for m in mods:
-        v = numeric_metric(m, metric, per_event, total_events)
-        if v is None:
-            continue
-        k = key_for_level(m, level)
-        agg[k] = agg.get(k, 0.0) + v
-    return agg
-
+from compare_json_hist import *
 
 def union_categories(aggs: List[Dict[str, float]]) -> List[str]:
     cats = set()
@@ -141,46 +25,12 @@ def union_categories(aggs: List[Dict[str, float]]) -> List[str]:
         cats |= set(a.keys())
     return sorted(cats)
 
-
-# ------------------------
-# Colors
-# ------------------------
-def _clamp01(x: float) -> float:
-    return 0.0 if x < 0 else 1.0 if x > 1 else x
-
-
-def adjust_lightness(hex_color: str, factor: float) -> str:
-    r, g, b = to_rgb(hex_color)
-    if factor >= 1:
-        r = r + (1 - r) * (factor - 1)
-        g = g + (1 - g) * (factor - 1)
-        b = b + (1 - b) * (factor - 1)
-    else:
-        r = r * factor
-        g = g * factor
-        b = b * factor
-    return to_hex((_clamp01(r), _clamp01(g), _clamp01(b)))
-
-
-def pick_base_color(package: str, cmap: Dict[str, str]) -> str:
-    return cmap.get(package, cmap.get("others", "#cccccc"))
-
-
-def color_for_category(cat: str, level: str, pkg_of_cat: str, colors: Dict[str, str]) -> str:
-    base = pick_base_color(pkg_of_cat, colors)
-    if level == "package":
-        return base
-    h = abs(hash(cat)) % 997
-    factor = 0.85 + (h / 997.0) * 0.40  # ~0.85..1.25
-    return adjust_lightness(base, factor)
-
-
 def dominant_package_for_cat(
     cat: str,
     level: str,
     mods_by_file: List[List[Dict]],
     metric: str,
-    per_event: bool,
+    normalise: bool,
     total_events_by_file: List[float],
 ) -> str:
     """
@@ -191,12 +41,11 @@ def dominant_package_for_cat(
         for m in mods:
             if key_for_level(m, level) != cat:
                 continue
-            v = numeric_metric(m, metric, per_event, tev)
+            v = numeric_metric(m, metric, normalise, tev)
             if v is None:
                 continue
             contrib[package_from_expanded(m)] += v
     return max(contrib.items(), key=lambda x: x[1])[0] if contrib else "Unassigned"
-
 
 # ------------------------
 # Plotting (N files)
@@ -209,8 +58,10 @@ def plot_stacked_bars(
     metric_label: str,
     title: Optional[str],
     subtitle: Optional[str],
+    ndigis: int,
     lumi_text: Optional[str],
-    rotate: int,
+    cms_text: Optional[str],
+    rotate_labels: int,
     truncate: Optional[int],
     fontsize: int,
     baseline_idx: int,
@@ -251,7 +102,7 @@ def plot_stacked_bars(
         bottoms = [b + s for b, s in zip(bottoms, seg)]
 
     ax1.set_xticks(x)
-    ax1.set_xticklabels(file_labels, fontsize=fontsize)
+    ax1.set_xticklabels(file_labels, fontsize=fontsize, rotation=rotate_labels)
     ax1.tick_params(axis="y", labelsize=fontsize)
     ax1.set_ylabel(metric_label, fontsize=fontsize+2)
     ax1.set_ylim(0, max(bottoms) * 1.15 if bottoms else 1.0)
@@ -260,12 +111,13 @@ def plot_stacked_bars(
     # annotate totals
     ymax = max(bottoms) if bottoms else 0.0
     for i, tot in enumerate(bottoms):
-        ax1.text(x[i], tot + 0.02 * (ymax if ymax > 0 else 1.0), f"{tot:.2f}", ha="center", va="bottom", fontsize=12, fontweight="bold")
+        fmt = f"{{:.{ndigis}f}}"
+        ax1.text(x[i], tot + 0.02 * (ymax if ymax > 0 else 1.0), fmt.format(tot), ha="center", va="bottom", fontsize=12, fontweight="bold")
 
     # legend (categories)
     # If too many categories, legend can get huge; user can restrict with --top in future if needed.
     ax1.legend(loc="upper left", bbox_to_anchor=(1, 1.05), fontsize=fontsize-2, frameon=False)
-    hep.cms.text("Simulation Preliminary", ax=ax1, fontsize=fontsize+4)
+    hep.cms.text(f"{cms_text}", ax=ax1, fontsize=fontsize+4)
     hep.cms.lumitext(f"{lumi_text}", ax=ax1, fontsize=fontsize+4)
 
     # ---- Bottom panel: delta vs baseline per file, split by category ----
@@ -293,10 +145,10 @@ def plot_stacked_bars(
         neg_bottom += neg
 
     ax2.axhline(0, linestyle="--", linewidth=1, color='black')
-    ax2.tick_params(axis="y", labelsize=fontsize)
+    ax2.tick_params(axis="y", labelsize=fontsize, rotation=rotate_labels)
     ax2.set_ylabel(f"Δt vs {file_labels[baseline_idx]} [ms]", fontsize=fontsize+2)
     ax2.set_xticks(x)
-    ax2.set_xticklabels(file_labels, fontsize=fontsize)
+    ax2.set_xticklabels(file_labels, fontsize=fontsize, rotation=rotate_labels)
     ax2.grid(axis="y", linestyle=":", alpha=0.5)
 
     if title:
@@ -321,28 +173,31 @@ def main():
     )
     p.add_argument("json_files", nargs="+", type=Path, help="Timing JSON files (2 or more)")
 
-    # Mapping & colors
-    p.add_argument("--map", type=Path, required=True, help="Grouping JSON (TypeGlob|LabelGlob -> Package)")
+    # Groups & colors
+    p.add_argument("--group", type=Path, required=True, help="Grouping JSON (TypeGlob|LabelGlob -> Package)")
     p.add_argument("--colors", type=Path, default=None, help="Colors JSON mapping Package -> HEX")
-    p.add_argument("--debug-map", action="store_true", help="Print failures from augment_json for unmapped modules.")
+    p.add_argument("--show-unassigned", action="store_true", help="Print failures from augment_json for unmapped modules.")
 
     # Metrics / x-axis
     p.add_argument("-m", "--metric", default="time_real", help="Metric to use (default: time_real)")
-    p.add_argument("--per-event", action="store_true", help="Divide metric by the FILE's total events")
+    norm_group = p.add_mutually_exclusive_group()
+    norm_group.add_argument("--normalise", dest="normalise", action="store_true", default=True, help="Divide the metric by the FILE's total number of events (default)")
+    norm_group.add_argument("--no-normalise", dest="normalise", action="store_false", help="Do not normalise the metric by the number of events")
     p.add_argument("--level", choices=["package", "type", "label", "expanded"], default="package",
                    help="Stack categories at this level (default: package)")
 
     # Filters
     p.add_argument("--package", default=None, help="Keep only modules in this exact package")
     p.add_argument("--package-regex", default=None, help="Keep modules whose package matches this regex")
-    p.add_argument("--require-map", action="store_true", help="Drop modules with package 'Unassigned'")
+    p.add_argument("--ignore-unassigned", action="store_true", help="Drop modules with package 'Unassigned'")
 
     # Labels / appearance
-    p.add_argument("--labels", nargs="*", default=None,
-                   help="Custom labels for each input file (same count as json_files)")
-    p.add_argument("--rotate", type=int, default=0, help="Rotate x tick labels (degrees, default 0)")
+    p.add_argument("--labels", nargs="*", default=None, help="Custom labels for each input file (same count as json_files)")
+    p.add_argument("--rotate-labels", type=int, default=0, help="Rotate x tick labels (degrees, default 0)")
     p.add_argument("--label-fontsize", type=int, default=10, help="Font size for x-axis labels")
-    p.add_argument("--lumi-text", default="", help="Right-side label (e.g. CMSSW..., sample)")
+    p.add_argument("--cms-text", default="", help="Left-side label (e.g. Simulation Preliminary)")
+    p.add_argument("--lumi-text", default="", help="Right-side label (e.g. 13.6 TeV)")
+    p.add_argument("--metric-precision", type=int, default=2, help="Decimal places for metric annotations (default: 2)")
 
     # Baseline for delta
     p.add_argument("--baseline", type=int, default=0, help="Index of baseline file for Δ (default 0)")
@@ -364,8 +219,8 @@ def main():
     if not (0 <= args.baseline < len(args.json_files)):
         raise SystemExit("ERROR: --baseline must be a valid index into json_files.")
 
-    # Load mapping + colors
-    group_data = load_grouping(args.map)
+    # Load grouping + colors
+    group_data = load_grouping(args.group)
     color_map = load_colors(args.colors)
 
     # Load, augment, filter, aggregate each file
@@ -378,11 +233,11 @@ def main():
         tev = get_total_events(data)
         total_events_by_file.append(tev)
 
-        data = augment_json(data, group_data, args.debug_map)
+        data = augment_json(data, group_data, args.show_unassigned)
         mods = data["modules"]
 
         # Filters
-        if args.require_map:
+        if args.ignore_unassigned:
             mods = [m for m in mods if package_from_expanded(m) != "Unassigned"]
         if args.package:
             mods = [m for m in mods if package_from_expanded(m) == args.package]
@@ -391,7 +246,7 @@ def main():
             mods = [m for m in mods if rx.search(package_from_expanded(m))]
 
         mods_by_file.append(mods)
-        aggs.append(aggregate(mods, args.metric, args.per_event, args.level, tev))
+        aggs.append(aggregate(mods, args.metric, args.normalise, args.level, tev))
 
     cats = union_categories(aggs)
 
@@ -408,7 +263,7 @@ def main():
     else:
         for c in cats:
             pkg_for_cat[c] = dominant_package_for_cat(
-                c, args.level, mods_by_file, args.metric, args.per_event, total_events_by_file
+                c, args.level, mods_by_file, args.metric, args.normalise, total_events_by_file
             )
 
     # Colors per category
@@ -417,14 +272,14 @@ def main():
         pkg = pkg_for_cat.get(c, "others")
         cat_colors.append(color_for_category(c, args.level, pkg, color_map))
 
-    metric_label = "Time per event [ms]" if args.per_event else "Time [ms]"
+    metric_label = "Time per event [ms]" if args.normalise else "Time [ms]"
     subtitle_bits = [f"level={args.level}"]
     if args.package:
         subtitle_bits.append(f"package == {args.package!r}")
     if args.package_regex:
         subtitle_bits.append(f"package ~ /{args.package_regex}/")
-    if args.require_map:
-        subtitle_bits.append("require_map")
+    if args.ignore_unassigned:
+        subtitle_bits.append("ignore_unassigned")
     subtitle = "; ".join(subtitle_bits)
 
     plot_stacked_bars(
@@ -436,7 +291,9 @@ def main():
         title=args.title,
         subtitle=subtitle,
         lumi_text=args.lumi_text,
-        rotate=args.rotate,
+        cms_text=args.cms_text,
+        ndigis=args.metric_precision,
+        rotate_labels=args.rotate_labels,
         truncate=None,
         fontsize=args.label_fontsize,
         baseline_idx=args.baseline,
@@ -444,7 +301,6 @@ def main():
         show=not args.no_show,
     )
 
-
 if __name__ == "__main__":
-    import numpy as np  # keep local to avoid changing your import style too much
+    import numpy as np 
     main()
