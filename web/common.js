@@ -603,7 +603,9 @@ function getGroup(group) {
 // group is an array of nested group labels,
 // e.g. [ "GPU", "Pixels", "PixelTrackProducer" ]
 function makeOrUpdateGroup(group, module) {
-// output from ModuleALlocEventMonitor
+// output from ModuleAllocMonitor
+// If there is a non-empty record field in the dictionary
+// create a new level of hierarchy with the record field as the value.
   if ("record" in module && module.record !== "") {
     var data = current.data;
     data.elements = 0;
@@ -639,6 +641,8 @@ function makeOrUpdateGroup(group, module) {
     data.groups.push(entry);
     data.weight += module[config.resource];
   }
+  //  This is data from FastTimerService
+  // proceed as before 
   else {
   // data should always have a "groups" property of array type
   var data = current.data;
