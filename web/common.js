@@ -840,9 +840,6 @@ $(document).ready(function () {
       if ("ratio" in hover.group) {
         tooltip.innerHTML += "<br>" + (hover.group.ratio * 100.).toFixed(1) + "% ratio";
       }
-      if ("record" in hover.group && hover.group.record !== "") {
-        tooltip.innerHTML += "<br>Record: " + escape(hover.group.record);
-      }
       tooltip.style.visibility = "visible";
     } else {
       tooltip.innerHTML = null;
