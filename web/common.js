@@ -685,7 +685,9 @@ function updateDataView() {
     console.log("Unassigned modules:");
     console.table(unassigned);
   }
-  normalise(current.data, current.dataset.total.events);
+  if (current.dataset.total.events !== undefined) {
+    normalise(current.data, current.dataset.total.events);
+  }
 
   for (key in current.colours) {
     group = getGroup(key.split("|"));
@@ -792,7 +794,7 @@ $(document).ready(function () {
   circles.set("onGroupHover", function (hover) {
     if (hover.group) {
       tooltip.innerHTML = escape(hover.group.label) + "<br>" + hover.group.weight.toFixed(1) + " " + current.unit;
-      if ("events" in hover.group) {
+	  if (hover.group.events !== undefined) {
         tooltip.innerHTML += "<br>" + (hover.group.events * 100.).toFixed(1) + "% events";
       }
       if ("ratio" in hover.group) {
