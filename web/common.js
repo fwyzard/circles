@@ -794,7 +794,7 @@ $(document).ready(function () {
   circles.set("onGroupHover", function (hover) {
     if (hover.group) {
       tooltip.innerHTML = escape(hover.group.label) + "<br>" + hover.group.weight.toFixed(1) + " " + current.unit;
-	if (hover.group.events !== undefined) {
+	  if (hover.group.events !== undefined) {
         tooltip.innerHTML += "<br>" + (hover.group.events * 100.).toFixed(1) + "% events";
       }
       if ("ratio" in hover.group) {
