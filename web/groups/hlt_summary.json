@@ -786,6 +786,7 @@
   "SiPixelRecHitFromCUDA|": "Pixel track and vertex",
   "SiPixelRecHitFromSOA|": "Pixel track and vertex",
   "SiPixelRecHitFromSoAAlpakaPhase1|": "Pixel track and vertex",
+  "SiPixelRecHitFromSoAAlpakaPhase2|": "Pixel track and vertex",
   "SiPixelRecHitFromSoAAlpaka|" : "Pixel track and vertex",
   "SiPixelRecHitSoAFromCUDAPhase1|": "Pixel track and vertex|Host copy",
   "SiPixelRecHitSoAFromCUDA|": "Pixel track and vertex|Host copy",

@@ -786,6 +786,7 @@
   "SiPixelRecHitFromCUDA|": "Pixels|Conversion",
   "SiPixelRecHitFromSOA|": "Pixels|Conversion",
   "SiPixelRecHitFromSoAAlpakaPhase1|": "Pixels|Conversion",
+  "SiPixelRecHitFromSoAAlpakaPhase2|": "Pixels|Conversion",
   "SiPixelRecHitFromSoAAlpaka|" : "Pixels|Conversion",
   "SiPixelRecHitSoAFromCUDAPhase1|": "Pixels|Host copy",
   "SiPixelRecHitSoAFromCUDA|": "Pixels|Host copy",
