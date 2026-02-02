@@ -624,15 +624,18 @@ function makeOrUpdateGroup(group, module) {
       data = data.groups[len - 1];
     }
   }
-    if (! data.groups) {
-      data.groups = [];
-      var len = data.groups.push({ "label": label, "weight": 0., "groups": [] })
-    }
+  // If the group has no "groups" property then it was created for record and needs to have its groups property initialized
+  if (! data.groups) {
+    data.groups = [];
+    var len = data.groups.push({ "label": label, "weight": 0., "groups": [] })
+  }
   // add the module and its resource to the group
   var label = "";
   if (current.show_labels || module.label == "other") {
-    if ("record" in module && module.record !== "") {
+  // if record is defined and non-empty, use it as label
+    if ("record" in module && module.record !== "") {``
       label = module.record;
+  // otherwise, use the module label
     } else {
       label = module.label;
     }
