@@ -633,7 +633,7 @@ function makeOrUpdateGroup(group, module) {
   var label = "";
   if (current.show_labels || module.label == "other") {
   // if record is defined and non-empty, use it as label
-    if ("record" in module && module.record !== "") {``
+    if ("record" in module && module.record !== "") {
       label = module.record;
   // otherwise, use the module label
     } else {
@@ -643,7 +643,7 @@ function makeOrUpdateGroup(group, module) {
   var entry = { "label": label, "weight": module[config.resource], "events": module.events };
   if ("ratio" in module)
     entry.ratio = module.ratio;
-  if (module.record && module.record !== "")
+  if ("record" in module && module.record !== "")
     entry.record = module.record;
   data.groups.push(entry);
   data.weight += module[config.resource];
@@ -691,6 +691,7 @@ function updateDataView() {
   for (module of current.dataset.modules) {
     var group = findGroup(module);
     group.push(module.type);
+    // if record is defined and non-empty, add it to the group hierarchy
     if ("record" in module && module.record !== "")
       group.push(module.label);
     makeOrUpdateGroup(group, module);
