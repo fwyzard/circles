@@ -624,7 +624,8 @@ function makeOrUpdateGroup(group, module) {
       data = data.groups[len - 1];
     }
   }
-  // If the group has no "groups" property then it was created for record and needs to have its groups property initialized
+  // If the group has no "groups" property then it was created for label and needs to have its groups property initialized
+  // to allow adding the record as the last level
   if (! data.groups) {
     data.groups = [];
     var len = data.groups.push({ "label": label, "weight": 0., "groups": [] })
@@ -691,7 +692,7 @@ function updateDataView() {
   for (module of current.dataset.modules) {
     var group = findGroup(module);
     group.push(module.type);
-    // if record is defined and non-empty, add it to the group hierarchy
+    // if record is defined and non-empty, add the label to the group hierarchy as well
     if ("record" in module && module.record !== "")
       group.push(module.label);
     makeOrUpdateGroup(group, module);
