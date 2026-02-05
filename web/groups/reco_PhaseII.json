@@ -743,6 +743,7 @@
   "unsortedOfflinePrimaryVertices4DnoPID": "RecoVertex|Configuration",
   "vertexMerger": "RecoVertex|AdaptiveVertexFinder",
   "zdcreco": "RecoLocalCalo|HcalRecProducers",
+  "cleanup|cleanup": "event cleanup",
   "idle|idle": "idle",
   "other|other": "other|other"
 }
