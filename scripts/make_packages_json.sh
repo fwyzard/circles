@@ -24,7 +24,7 @@ if [ "$1" == "-u" ] && [ -f "$2" ]; then
 fi
 
 echo '{'
-cd $HOME/src/cmssw
+cd $CMSSW_RELEASE_BASE/src
 {
   grep "^ *$REGEX\>" \
     -r */*/plugins */*/src */*/interface \
