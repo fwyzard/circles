@@ -918,6 +918,7 @@
   "alpaka_serial_sync::SiPixelRawToClusterPhase1|": "Pixel track and vertex",
   "alpaka_serial_sync::SiPixelRecHitAlpakaPhase1|": "Pixel track and vertex",
   "eventsetup|eventsetup": "non-event processing",
+  "cleanup|cleanup": "non-event processing",
   "idle|idle": "non-event processing",
   "other|other": "non-event processing"
 }

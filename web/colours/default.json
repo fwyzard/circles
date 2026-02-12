@@ -27,6 +27,7 @@
   "others": "#cccccc",
   "non-event processing": "#808080",
   "event setup": "#404040",
+  "event cleanup": "#555555",
   "idle": "#e8e8e8",
   "other": "#ffffff"
 }

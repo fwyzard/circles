@@ -5725,6 +5725,7 @@
   "tt::ProducerSetup|": "L1Trigger|TrackTrigger",
   "ttHFGenFilter|": "PhysicsTools|JetMCAlgos",
   "ttbarEventSelector|": "DQM|TrackingMonitorSource",
+  "cleanup|cleanup": "event cleanup",
   "idle|idle": "idle",
   "other|other": "other|other"
 }
