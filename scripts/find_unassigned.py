@@ -53,7 +53,7 @@ def main():
         if (g[0] is None or g[0].match(module['type'])) and (g[1] is None or g[1].match(module['label'])):
           break;
       else:
-        print('  "{type}|{label}" : "",'.format(**module))
+        print('  "{type}|{label}": "",'.format(**module))
 
 
 if __name__ == "__main__":
