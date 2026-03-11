@@ -925,7 +925,7 @@
   "sistrip::SiStripClustersToLegacy|": "Full track and vertex",
   "sistrip::SiStripRawToCluster@alpaka|": "Full track and vertex",
   "eventsetup|eventsetup": "non-event processing",
-  "cleanup|cleanup": "event cleanup",
+  "cleanup|cleanup": "non-event processing",
   "idle|idle": "non-event processing",
   "other|other": "non-event processing"
 }
