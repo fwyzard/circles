@@ -132,7 +132,7 @@
   "CosmicTrackSelector|cosmicsVetoTracks": "Full track and vertex",
   "CosmicsMuonIdProducer|cosmicsVeto": "Muons",
   "DQMFileSaverPB|hltDQMFileSaverPB": "others",
-  "DQMRootOutputModule": "others",
+  "DQMRootOutputModule|": "others",
   "DTRecHitProducer|": "Muons",
   "DTRecSegment4DProducer|": "Muons",
   "DTTFFEDReader|": "others",

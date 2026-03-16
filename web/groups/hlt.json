@@ -132,7 +132,7 @@
   "CosmicTrackSelector|cosmicsVetoTracks": "Tracking",
   "CosmicsMuonIdProducer|cosmicsVeto": "Muons",
   "DQMFileSaverPB|hltDQMFileSaverPB": "I/O",
-  "DQMRootOutputModule": "I/O",
+  "DQMRootOutputModule|": "I/O",
   "DTRecHitProducer|": "Muons",
   "DTRecSegment4DProducer|": "Muons",
   "DTTFFEDReader|": "L1T",
