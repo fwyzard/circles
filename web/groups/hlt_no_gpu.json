@@ -826,7 +826,7 @@
   "TevMuonProducer|": "Muons",
   "TkAlCaRecoMonitor|ALCARECOSiStripCalMinBias*": "DQM",
   "TkAlCaRecoMonitor|ALCARECOTkAl*": "DQM",
-  "TICLCandidateProducer|:" "HGCal"
+  "TICLCandidateProducer|": "HGCal",
   "TotemTriggerRawToDigi|": "TOTEM",
   "TotemVFATRawToDigi|": "TOTEM",
   "TrackClusterRemoverPhase2|hltIter2Phase2L3FromL1TkMuonClustersRefRemoval": "Muons",
@@ -884,7 +884,7 @@
   "TrackRefitter|ALCARECOSiPixelCalSingleMuonTightTracksRefit": "AlCa",
   "TrackSelectorByRegion|": "Pixels",
   "TrackSelector|": "Tracking",
-  "TracksterLinksProducer|":  "HGCal"
+  "TracksterLinksProducer|":  "HGCal",
   "TrackTfClassifier|": "Tracking",
   "TrackVertexArbitrator|": "Tracking",
   "TrackWithVertexRefSelector|trackWithVertexRefSelectorBeforeSorting": "Vertices",
