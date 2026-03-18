@@ -1,0 +1,27 @@
+name: Validate JSON files
+
+on:
+  push:
+    paths:
+      - 'web/groups/*.json'
+  pull_request:
+    paths:
+      - 'web/groups/*.json'
+
+jobs:
+  validate-json:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Validate JSON files
+        run: |
+          for file in web/groups/*.json; do
+            echo "Checking $file"
+            jq empty "$file"
+          done
