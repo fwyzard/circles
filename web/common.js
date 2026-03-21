@@ -605,7 +605,7 @@ function getGroup(group) {
 function makeOrUpdateGroup(group, module) {
   // data should always have a "groups" property of array type
   var data = current.data;
-  data.elements = 0
+  data.elements = 0;
   for (label of group) {
     // add the module's resource to the group's
     data.weight += module[config.resource];
@@ -624,14 +624,27 @@ function makeOrUpdateGroup(group, module) {
       data = data.groups[len - 1];
     }
   }
+  // If the group has no "groups" property then it was created for label and needs to have its groups property initialized
+  // to allow adding the record as the last level
+  if (! data.groups) {
+    data.groups = [];
+    var len = data.groups.push({ "label": label, "weight": 0., "groups": [] })
+  }
   // add the module and its resource to the group
   var label = "";
-  if (current.show_labels || module.label == "other")
-    label = module.label
+  if (current.show_labels || module.label == "other") {
+  // if record is defined and non-empty, use it as label
+    if ("record" in module && module.record !== "") {
+      label = module.record;
+  // otherwise, use the module label
+    } else {
+      label = module.label;
+    }
+  }
   var entry = { "label": label, "weight": module[config.resource], "events": module.events };
   if ("ratio" in module)
     entry.ratio = module.ratio;
-  if (module.record && module.record !== "")
+  if ("record" in module && module.record !== "")
     entry.record = module.record;
   data.groups.push(entry);
   data.weight += module[config.resource];
@@ -679,6 +692,9 @@ function updateDataView() {
   for (module of current.dataset.modules) {
     var group = findGroup(module);
     group.push(module.type);
+    // if record is defined and non-empty, add the label to the group hierarchy as well
+    if ("record" in module && module.record !== "")
+      group.push(module.label);
     makeOrUpdateGroup(group, module);
   }
   if (unassigned.length) {
@@ -799,9 +815,6 @@ $(document).ready(function () {
       }
       if ("ratio" in hover.group) {
         tooltip.innerHTML += "<br>" + (hover.group.ratio * 100.).toFixed(1) + "% ratio";
-      }
-      if ("record" in hover.group && hover.group.record !== "") {
-        tooltip.innerHTML += "<br>Record: " + escape(hover.group.record);
       }
       tooltip.style.visibility = "visible";
     } else {
