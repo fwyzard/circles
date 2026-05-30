@@ -1,6 +1,7 @@
 {
   "AlCa": "#ff9999",
   "B tagging": "#663300",
+  "CTPPS": "#8A2BE2",
   "DQM": "#a00000",
   "E/Gamma": "#ffee00",
   "ECAL": "#4ddbff",
@@ -19,6 +20,7 @@
   "Tracking": "#009900",
   "Full track and vertex": "#009900",
   "Vertices": "#006600",
+  "ZDC": "#008B8B",
 
   "Pixels on GPU": "#33ff33",
   "ECAL on GPU": "#4ddbff",
