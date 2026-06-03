@@ -36,6 +36,7 @@ Client-side (JavaScript):
   Utilities:
     - PNG export for each chart (white background compositing)
     - URL state mirrored via history API for deep-linking
+    - Comparison dataset status also reflected in URL for sharing
 -->
 <html lang="en">
 <head>
@@ -256,6 +257,22 @@ if (config.colours == null) config.colours = "default";
 if (config.groups == null) config.groups = "hlt";
 if (config.show_labels == null) config.show_labels = true;
 config.threshold = 0.;
+// Comparison datasets to restore from the URL (?compare=a,b,c)
+// Captured once here so it survives the list refreshes that happen while the
+// primary dataset loads; it is applied once the primary is ready.
+var pendingURLComparisons = [];
+(function(){
+  var c = new URL(window.location.href).searchParams.get("compare");
+  if (c) pendingURLComparisons = c.split(",").map(s=>s.trim()).filter(Boolean);
+})();
+// Whether to restore diff view (?diff=1) from the URL; applied once a comparison loads.
+var pendingURLDiff = (function(){
+  var d = new URL(window.location.href).searchParams.get("diff");
+  return d === "1" || d === "true";
+})();
+// Focused group to restore from the URL (?focus=<group>); applied once it appears in the
+// focus dropdown (which needs the relevant comparison loaded). null = no focused group.
+var pendingURLFocus = new URL(window.location.href).searchParams.get("focus");
 
 // Hook compileGroups to advance pattern version for comparison cache invalidation.
 var groupsPatternVersion = 0;
@@ -297,6 +314,33 @@ var comparisonCache = {};
 var aggregatedComparisonCache = {}; // key -> { weights, total }
 var groupsPatternVersion = 0;       // increments whenever groups file recompiled
 var cachedComparisonTrees = {};     // cache full grouped trees per comparison dataset
+// Diff-view colour palette (https://arxiv.org/pdf/2107.02270), shared between the top
+// diff plot and the comparison-list colour swatches so the colours always match. Named
+// with a 'diff' prefix to avoid clobbering the global `colours` (list of colour schemes).
+const diffColours = [
+  'rgba(63, 144, 218, 0.6)',
+  'rgba(255, 169, 14, 0.6)',
+  'rgba(189, 31, 1, 0.6)',
+  'rgba(148, 164, 162, 0.6)',
+  'rgba(131, 45, 182, 0.6)',
+  'rgba(169, 107, 89, 0.6)',
+  'rgba(231, 99, 0, 0.6)',
+  'rgba(185, 172, 112, 0.6)',
+  'rgba(113, 117, 129, 0.6)',
+  'rgba(146, 218, 221, 0.6)'
+];
+const diffBorderColours = [
+  'rgba(63, 144, 218, 1)',
+  'rgba(255, 169, 14, 1)',
+  'rgba(189, 31, 1, 1)',
+  'rgba(148, 164, 162, 1)',
+  'rgba(131, 45, 182, 1)',
+  'rgba(169, 107, 89, 1)',
+  'rgba(231, 99, 0, 1)',
+  'rgba(185, 172, 112, 1)',
+  'rgba(113, 117, 129, 1)',
+  'rgba(146, 218, 221, 1)'
+];
 // table -> chart ordering sync
 var tableOrderSyncInstalled = false;
 var tableUserInitiatedSort = false;
@@ -412,12 +456,22 @@ function buildTablesAndCharts(){
   $('#selected').show();
   table.draw();
 
-  createPackagesBarChart(top);
   lastTopGroups = top.slice();
-  createPackagesSingleStackChart(top);
+  // Recompute the selected comparison datasets for the (possibly changed) metric /
+  // grouping so they survive configuration changes, then draw either the diff view or
+  // the stacked view depending on the current mode.
+  recomputeComparisons();
+  if (isDiffView && comparisonDatasets.length){
+    // plotTimingDifference refreshes the focus dropdown (preserving the selection) itself.
+    plotTimingDifference();
+  } else {
+    createPackagesBarChart(top);
+    createPackagesSingleStackChart(top);
+  }
   updatePackagesChartTitle();
   resizeChartHeights();
   populateComparisonAddSelect();
+  applyComparisonsFromURL();
 
   // One-time handlers to sync charts with user table sorting
   if (!tableOrderSyncInstalled){
@@ -528,18 +582,44 @@ function createPackagesSingleStackChart(groups){
   if (packagesSingleStackChart) packagesSingleStackChart.destroy();
   var ctx = document.getElementById('packagesSingleStackChart').getContext('2d');
 
-  // ORDERING (primary dataset groups first)
-  
+  // ORDERING
+  // Alphabetical baseline, with two tweaks: groups whose name starts with a lower-case
+  // letter (e.g. "event setup") sort after the upper-case-initial ones, and "Unassigned"
+  // is always placed last. With comparisons: keep the groups whose value changed by
+  // <= 5% (relative to every comparison) at the bottom of the stack and move those that
+  // changed by more than 5% on top, so the actual differences stand out. Each part keeps
+  // the alphabetical ordering above.
+  var CHANGE_THRESHOLD = 0.05; // 5%
+  function groupChangedBeyondThreshold(label){
+    var p = primaryWeights[label] || 0;
+    for (var k=0;k<comparisonDatasets.length;k++){
+      var c = comparisonDatasets[k].weights[label] || 0;
+      var rel = (p === 0) ? (c === 0 ? 0 : Infinity) : Math.abs(c - p) / p;
+      if (rel > CHANGE_THRESHOLD) return true;
+    }
+    return false;
+  }
+  // Sort upper-case-initial groups before lower-case-initial ones, alphabetical within each.
+  function compareLabels(a,b){
+    var la = /^[a-z]/.test(a) ? 1 : 0;
+    var lb = /^[a-z]/.test(b) ? 1 : 0;
+    if (la !== lb) return la - lb;
+    return a.localeCompare(b);
+  }
   function orderSingleStackLabels(labels){
-    var priority = ['pixels','tracking','vertices','unassigned'];
-    var low = s=>s.toLowerCase();
-    var prioritized = [];
-    priority.forEach(p=>{
-      var idx = labels.findIndex(l=>low(l)===p);
-      if (idx>=0) prioritized.push(labels[idx]);
-    });
-    var rest = labels.filter(l=>!priority.includes(low(l))).sort((a,b)=>a.localeCompare(b));
-    return prioritized.concat(rest);
+    // "Unassigned" is pulled out and re-appended so it is always placed last.
+    var hasUnassigned = labels.indexOf("Unassigned") !== -1;
+    var sorted = labels.filter(l=>l!=="Unassigned").sort(compareLabels);
+    var ordered;
+    if (!comparisonDatasets.length){
+      ordered = sorted;
+    } else {
+      var changed = [], unchanged = [];
+      sorted.forEach(function(l){ (groupChangedBeyondThreshold(l) ? changed : unchanged).push(l); });
+      ordered = unchanged.concat(changed); // unchanged at the bottom of the stack, changed on top
+    }
+    if (hasUnassigned) ordered.push("Unassigned"); // always last
+    return ordered;
   }
 
   // Build union of top-level group labels across primary + comparisons
@@ -777,75 +857,172 @@ function populateComparisonAddSelect(){
   while (sel.options.length) sel.remove(0);
   var currentPrimary = config.dataset;
   datasets.forEach(function(d){
-    if (d === currentPrimary) return;
-    if (comparisonDatasets.find(c=>c.name===d)) return;
     var opt=document.createElement('option');
-    opt.value=d; opt.text=d;
+    opt.value=d;
+    opt.text=d;
+    // Show every dataset, but disable (gray out) the ones that cannot be added right
+    // now: the primary dataset and any already-selected comparison datasets.
+    if (d === currentPrimary){
+      opt.text = d + " (primary)";
+      opt.disabled = true;
+    } else if (comparisonDatasets.find(c=>c.name===d)){
+      opt.text = d + " (added)";
+      opt.disabled = true;
+    }
     sel.add(opt);
   });
-  if (sel.options.length) sel.selectedIndex=0;
+  // Restore the previous selection if it is still selectable, otherwise fall back to
+  // the first enabled option so a disabled/grayed entry is never left selected.
+  sel.selectedIndex = -1;
+  var fallback = -1;
+  for (var i=0;i<sel.options.length;i++){
+    if (sel.options[i].disabled) continue;
+    if (fallback === -1) fallback = i;
+    if (sel.options[i].value === keep){ sel.selectedIndex = i; break; }
+  }
+  if (sel.selectedIndex === -1) sel.selectedIndex = fallback;
 }
 
-function refreshComparisonList(){
+// Diff-view colour for a dataset position (0 = primary, i+1 = comparison i), matching the
+// colour assignment in plotTimingDifference.
+function diffColourFor(position){
+  return {
+    bg: diffColours[position % diffColours.length],
+    border: diffBorderColours[position % diffBorderColours.length]
+  };
+}
+function colourSwatchHTML(position){
+  var c = diffColourFor(position);
+  return '<span style="display:inline-block; width:12px; height:12px; border-radius:2px;'
+    + ' margin-right:6px; vertical-align:middle; flex:0 0 auto; background:'+c.bg+'; border:1px solid '+c.border+';"></span>';
+}
+
+// Build the comparison list, refresh the add-select and the shareable URL
+// In diff view each row also shows the colour the top diff plot assigns to
+// that dataset. Does NOT redraw the charts.
+function renderComparisonList(){
   var list = document.getElementById('comparison_list');
   if (!list) return;
-  list.innerHTML = comparisonDatasets.length ? '' : '<em>None</em>';
-  comparisonDatasets.forEach(function(c){
+  list.innerHTML = '';
+  // Colour swatches are only meaningful in diff view, where the top plot colours each
+  // dataset; the stacked view colours by group instead.
+  var showSwatches = isDiffView && comparisonDatasets.length > 0;
+
+  // Always show the primary dataset first, clearly labeled and not removable, so it
+  // is obvious at a glance which dataset the comparisons are being measured against.
+  var primaryName = config.local ? "local file" : config.dataset;
+  if (primaryName){
+    var pdiv = document.createElement('div');
+    pdiv.style.display='flex';
+    pdiv.style.justifyContent='space-between';
+    pdiv.style.alignItems='center';
+    pdiv.style.gap='4px';
+    pdiv.style.opacity='0.7';
+    pdiv.innerHTML = '<span style="white-space:nowrap; overflow:hidden; max-width:1000px;" title="'+escapeHTML(primaryName)+'">'
+      + (showSwatches ? colourSwatchHTML(0) : '') + escapeHTML(primaryName) + ' <b>(primary)</b></span>';
+    list.appendChild(pdiv);
+  }
+
+  comparisonDatasets.forEach(function(c, i){
     var div=document.createElement('div');
     div.style.display='flex';
     div.style.justifyContent='space-between';
     div.style.alignItems='center';
     div.style.gap='4px';
-    div.innerHTML = '<span style="white-space:nowrap; overflow:hidden; max-width:1000px;" title="'+c.name+'">'+escapeHTML(c.name)+'</span>'
+    div.innerHTML = '<span style="white-space:nowrap; overflow:hidden; max-width:1000px;" title="'+c.name+'">'
+      + (showSwatches ? colourSwatchHTML(i+1) : '') + escapeHTML(c.name)+'</span>'
       +'<button type="button" style="padding:1px 4px;" onclick="removeComparisonDataset(\''+c.name.replace(/'/g,"\\'")+'\')">x</button>';
     list.appendChild(div);
   });
+
+  // Only "None" when there is genuinely nothing to show (no primary and no comparisons).
+  if (!list.children.length){
+    list.innerHTML = '<em>None</em>';
+  }
+
   populateComparisonAddSelect();
-  // Re-render chart with updated comparisons
-  if (lastTopGroups) createPackagesSingleStackChart(lastTopGroups);
+  syncComparisonURL();
 }
 
-function clearComparisons() {
-  comparisonDatasets = [];
-  refreshComparisonList();
-  isDiffView = false;
-  var button = document.querySelector("button[onclick='toggleTimingDifference()']");
-  if (button) button.textContent = "Switch to diff view";
-  updateRelativeDiffLabelState();
-  if (lastTopGroups) {
+// Redraw the comparison charts in whichever view is currently active, so adding or
+// removing a dataset updates the diff plot in place instead of dropping back to stacked.
+function redrawComparisonView(){
+  if (!lastTopGroups) return;
+  if (isDiffView && comparisonDatasets.length){
+    plotTimingDifference();
+  } else {
     createPackagesBarChart(lastTopGroups);
+    createPackagesSingleStackChart(lastTopGroups);
     updatePackagesChartTitle();
   }
 }
 
-function removeComparisonDataset(name) {
-  comparisonDatasets = comparisonDatasets.filter(c => c.name !== name);
-  refreshComparisonList();
+// Leave diff view and restore the stacked-view controls (button label, focus selector,
+// relative-% label).
+function exitDiffView(){
   isDiffView = false;
   var button = document.querySelector("button[onclick='toggleTimingDifference()']");
   if (button) button.textContent = "Switch to diff view";
+  var middleGroupToggle = document.getElementById('middle_group_toggle');
+  if (middleGroupToggle) middleGroupToggle.style.display = "none";
   updateRelativeDiffLabelState();
-  if (lastTopGroups) createPackagesSingleStackChart(lastTopGroups);
+}
+
+// Enter diff view and set the stacked/diff toggle controls accordingly. Does not draw;
+// callers redraw (e.g. via plotTimingDifference or redrawComparisonView).
+function enterDiffView(){
+  isDiffView = true;
+  var button = document.querySelector("button[onclick='toggleTimingDifference()']");
+  if (button) button.textContent = "Switch to stacked view";
+  var middleGroupToggle = document.getElementById('middle_group_toggle');
+  if (middleGroupToggle) middleGroupToggle.style.display = "block";
+  updateRelativeDiffLabelState();
+}
+
+// Restore diff view from the URL (?diff=1) once at least one comparison has loaded
+// (diff view needs something to compare against). Applied at most once.
+function maybeApplyURLDiffView(){
+  if (!pendingURLDiff || !comparisonDatasets.length) return;
+  pendingURLDiff = false;
+  if (!isDiffView) enterDiffView();
+}
+
+function refreshComparisonList(){
+  renderComparisonList();
+  redrawComparisonView();
+}
+
+function clearComparisons() {
+  comparisonDatasets = [];
+  exitDiffView(); // nothing left to compare against
+  refreshComparisonList();
+}
+
+function removeComparisonDataset(name) {
+  comparisonDatasets = comparisonDatasets.filter(c => c.name !== name);
+  // Stay in diff view and just update it; only leave when nothing remains to compare
+  // against (diff view needs at least one comparison dataset).
+  if (isDiffView && !comparisonDatasets.length) exitDiffView();
+  refreshComparisonList();
 }
 
 function addComparisonDataset(){
   var sel = document.getElementById('comparison_add_select');
   if (!sel || !sel.value) return;
   var name = sel.value;
+  if (name === config.dataset) return;          // never compare the primary against itself
   if (comparisonDatasets.find(c=>c.name===name)) return;
-  isDiffView = false;
-  var button = document.querySelector("button[onclick='toggleTimingDifference()']");
-  if (button) button.textContent = "Switch to diff view";
-  updateRelativeDiffLabelState();
+  // Keep the current view (stacked or diff): once the dataset has loaded,
+  // refreshComparisonList -> redrawComparisonView updates whichever one is active.
   loadComparisonDataset(name);
 }
 
 function loadComparisonDataset(name){
   if (comparisonCache[name]){
     processComparisonRaw(name, comparisonCache[name]);
-    return;
+    return Promise.resolve();
   }
-  fetch(config.data_name + '/' + name + '.json')
+  return fetch(config.data_name + '/' + name + '.json')
     .then(r=>r.json())
     .then(raw=>{
       comparisonCache[name]=raw;
@@ -854,15 +1031,12 @@ function loadComparisonDataset(name){
     .catch(e=>console.error("Failed to load comparison dataset "+name,e));
 }
 
-// Compute grouped weights for comparison dataset using current grouping/metric
-function processComparisonRaw(name, raw){
-  if (!current.compiled) return; 
+// Compute the grouped top-level weights for a comparison dataset under the current
+// grouping/metric, caching the result. Returns { weights, total } 
+function computeComparisonWeights(name, raw){
   var cacheKey = name+"|"+config.resource+"|v"+groupsPatternVersion+"|lbl"+(current.show_labels?1:0);
   if (aggregatedComparisonCache[cacheKey]){
-    var cached = aggregatedComparisonCache[cacheKey];
-    comparisonDatasets.push({ name:name, weights:cached.weights, total:cached.total });
-    refreshComparisonList();
-    return;
+    return aggregatedComparisonCache[cacheKey];
   }
   // Local aggregation to not modify current.data
   var localRoot = {
@@ -927,27 +1101,72 @@ function processComparisonRaw(name, raw){
     }
   }
   var total = Object.values(weights).reduce((a,b)=>a+b,0);
-  aggregatedComparisonCache[cacheKey] = { weights:weights, total:total };
+  var result = { weights:weights, total:total };
+  aggregatedComparisonCache[cacheKey] = result;
   cachedComparisonTrees[cacheKey] = localRoot;
-  comparisonDatasets.push({ name:name, weights:weights, total:total });
+  return result;
+}
+
+// Add a comparison dataset entry (computing its weights) and refresh the list/charts.
+function processComparisonRaw(name, raw){
+  if (!current.compiled) return;
+  var res = computeComparisonWeights(name, raw);
+  comparisonDatasets.push({ name:name, weights:res.weights, total:res.total });
+  maybeApplyURLDiffView(); // enter diff view first if the URL requested it, so the redraw is diff
   refreshComparisonList();
 }
 
-// Clear comparisons when primary context changes
-function invalidateComparisons(){
-  clearComparisons();
-  populateComparisonAddSelect();
+// Recompute the weights of all currently-selected comparison datasets under the
+// current grouping/metric (e.g. after the user changes groups or metric). Updates
+// comparisonDatasets in place without touching the list/URL/charts; the caller
+// (buildTablesAndCharts) redraws afterwards.
+function recomputeComparisons(){
+  if (!current.compiled || !comparisonDatasets.length) return;
+  comparisonDatasets = comparisonDatasets.map(function(c){
+    var raw = comparisonCache[c.name];
+    if (!raw) return c; // raw not cached (should not happen) -> keep previous weights
+    var res = computeComparisonWeights(c.name, raw);
+    return { name:c.name, weights:res.weights, total:res.total };
+  });
 }
 
-// Hook into existing update triggers
-var _origUpdateMetrics = updateMetrics;
-updateMetrics = function(){ _origUpdateMetrics(); invalidateComparisons(); };
+// Mirror the current comparison selection and view mode (diff/stacked) into the page URL
+// (without adding a history entry)
+function syncComparisonURL(){
+  var names = comparisonDatasets.map(c=>c.name);
+  config.compare = names.length ? names.join(",") : null;
+  config.diff = isDiffView ? 1 : null;
+  var focusSel = document.getElementById('middle_group_select');
+  config.focus = (isDiffView && focusSel && focusSel.value) ? focusSel.value : null;
+  try {
+    window.history.replaceState(config, document.title, convertConfigToURL(config));
+  } catch(e){ /* ignore navigation errors */ }
+}
 
-var _origUpdateGroups = updateGroups;
-updateGroups = function(){ _origUpdateGroups(); invalidateComparisons(); };
+// One-time restore of comparison datasets named in the URL (?compare=a,b,c), run once
+// the primary dataset/metric/grouping are ready so their weights can be computed.
+var comparisonsFromURLApplied = false;
+function applyComparisonsFromURL(){
+  if (comparisonsFromURLApplied) return;
+  comparisonsFromURLApplied = true;
+  // Load sequentially so the comparison datasets keep the exact order given in the URL;
+  // parallel fetches can resolve out of order, which would reorder the list, the plotted
+  // datasets and their assigned colours.
+  var chain = Promise.resolve();
+  pendingURLComparisons.forEach(function(name){
+    if (name === config.dataset) return;                                          // skip the primary
+    if (typeof datasets !== "undefined" && datasets.indexOf(name) === -1) return; // skip unknown datasets
+    chain = chain.then(function(){
+      if (comparisonDatasets.find(c=>c.name===name)) return;                      // skip duplicates
+      return loadComparisonDataset(name);
+    });
+  });
+}
 
-var _origUpdateColours = updateColours;
-updateColours = function(){ _origUpdateColours(); invalidateComparisons(); };
+// The selected comparison datasets are kept across metric / grouping / colour changes:
+// their weights are recomputed for the new configuration in buildTablesAndCharts, so
+// there is no need to wipe the list on those actions. Comparisons are only removed
+// manually, via the per-row "x" or the "Clear" button.
 
 var _origUpdateDataset = updateDataset;
 updateDataset = function(){
@@ -956,7 +1175,11 @@ updateDataset = function(){
   var table = $('#properties').DataTable();
   table.order([]).draw();
   _origUpdateDataset();
-  invalidateComparisons();
+  // Keep existing comparisons across a primary change, but drop the new primary if it
+  // is itself in the comparison list (a dataset cannot be compared against itself).
+  comparisonDatasets = comparisonDatasets.filter(c => c.name !== config.dataset);
+  // List only; the imminent buildTablesAndCharts redraws the charts in the active view.
+  renderComparisonList();
 };
 
 var isDiffView = false;
@@ -982,38 +1205,63 @@ function updateRelativeDiffLabelState(){
 }
 
 function toggleTimingDifference() {
-  isDiffView = !isDiffView;
-  var button = document.querySelector("button[onclick='toggleTimingDifference()']");
-  var middleGroupToggle = document.getElementById('middle_group_toggle');
   if (isDiffView) {
-    button.textContent = "Switch to stacked view";
-    middleGroupToggle.style.display = "block";
-    populateMiddleGroupSelect();
-    plotTimingDifference();
-  } else {
-    button.textContent = "Switch to diff view";
-    middleGroupToggle.style.display = "none";
+    exitDiffView();
     if (lastTopGroups) {
       createPackagesBarChart(lastTopGroups);
       createPackagesSingleStackChart(lastTopGroups);
       updatePackagesChartTitle();
     }
+  } else {
+    enterDiffView();
+    plotTimingDifference();
   }
-  updateRelativeDiffLabelState();
+  // Refresh the list so the per-dataset colour swatches appear/disappear with diff view
+  // (renderComparisonList does not touch the charts, so it won't clobber the diff plot).
+  renderComparisonList();
 }
 
 // Populate the middle-level group dropdown
 function populateMiddleGroupSelect() {
   var select = document.getElementById('middle_group_select');
   if (!select) return;
-  while (select.options.length > 1) select.remove(1); // Keep "All packages" option
+  var prev = select.value; // preserve the current focus across rebuilds
+  while (select.options.length > 1) select.remove(1); // Keep the "All groups" option
   if (!lastTopGroups) return;
-  lastTopGroups.forEach(group => {
+
+  // Primary groups first (in their current order), then groups that exist only in
+  // comparison datasets (alphabetical), so comparison-only groups can be focused too.
+  var seen = {};
+  var labels = [];
+  lastTopGroups.forEach(function(group){
+    if (!seen[group.label]) { seen[group.label] = true; labels.push(group.label); }
+  });
+  var extra = [];
+  comparisonDatasets.forEach(function(cd){
+    Object.keys(cd.weights).forEach(function(l){
+      if (!seen[l]) { seen[l] = true; extra.push(l); }
+    });
+  });
+  extra.sort(function(a,b){ return a.localeCompare(b); });
+  labels = labels.concat(extra);
+
+  labels.forEach(function(label){
     var opt = document.createElement('option');
-    opt.value = group.label;
-    opt.textContent = group.label;
+    opt.value = label;
+    opt.textContent = label;
     select.add(opt);
   });
+
+  // Restore the focus: honour a URL-requested focus as soon as the group it names is
+  // available (and the user has not picked something else); otherwise keep the previous
+  // selection. Fall back to "All groups" if the target no longer exists.
+  var target = prev;
+  if (pendingURLFocus !== null && prev === "" && labels.indexOf(pendingURLFocus) !== -1) {
+    target = pendingURLFocus;
+    pendingURLFocus = null; // applied once
+  }
+  var stillExists = Array.prototype.some.call(select.options, function(o){ return o.value === target; });
+  select.value = stillExists ? target : "";
 }
 
 // Update the diff view to focus on the selected middle-level group
@@ -1041,37 +1289,56 @@ function plotTimingDifference() {
   if (packagesSingleStackChart) packagesSingleStackChart.destroy();
 
   var primaryWeights = {};
+  // Keep the focus dropdown in sync with the current comparisons (preserving the current
+  // selection) so comparison-only groups are focusable.
+  populateMiddleGroupSelect();
   var selectedGroup = document.getElementById('middle_group_select').value;
   var selectedGroupTitle = "All Groups";
   var selectedGroupTotalValue = 0;
 
   if (selectedGroup) {
-    // Focus on module-level data (one layer deeper) for the selected package
+    // Focus on module-level data (one layer deeper) for the selected group. The group may
+    // exist only in comparison datasets, in which case the primary contributes no modules.
+    var primaryModuleWeights = {};
     var selectedGroupData = lastTopGroups.find(g => g.label === selectedGroup);
-    if (!selectedGroupData || !selectedGroupData.groups) {
-      alert("Selected package has no sub-groups.");
+    if (selectedGroupData && selectedGroupData.groups) {
+      selectedGroupData.groups.forEach(subGroup => {
+        if (subGroup.groups) {
+          subGroup.groups.forEach(module => {
+            primaryModuleWeights[module.label] = module.weight;
+          });
+        } else {
+          primaryModuleWeights[subGroup.label] = subGroup.weight;
+        }
+      });
+    }
+
+    // Rank modules by their largest weight across ALL configurations (primary plus every
+    // comparison) and keep the top 15, so the selection reflects every dataset, including
+    // modules that exist only in some of them.
+    var overallModuleWeights = Object.assign({}, primaryModuleWeights);
+    comparisonDatasets.forEach(function(cd){
+      var cmw = getComparisonModuleWeights(cd.name, selectedGroup);
+      Object.keys(cmw).forEach(function(l){
+        overallModuleWeights[l] = Math.max(overallModuleWeights[l] || 0, cmw[l]);
+      });
+    });
+    if (!Object.keys(overallModuleWeights).length) {
+      alert("Selected group has no module-level breakdown.");
       return;
     }
-    selectedGroupData.groups.forEach(subGroup => {
-      if (subGroup.groups) {
-        subGroup.groups.forEach(module => {
-          primaryWeights[module.label] = module.weight;
-        });
-      } else {
-        primaryWeights[subGroup.label] = subGroup.weight;
-      }
-    });
-
-    // Sort modules by weight and keep only the top 15
-    var sortedModules = Object.entries(primaryWeights)
+    var topModules = Object.entries(overallModuleWeights)
       .sort((a, b) => b[1] - a[1])
-    var topModules = sortedModules.slice(0, 15);
-    primaryWeights = Object.fromEntries(sortedModules);
+      .slice(0, 15)
+      .map(function(e){ return e[0]; });
 
-    // Update the selected group title and total value
+    // Keep the primary's values for those modules (0 where the primary lacks one).
+    primaryWeights = {};
+    topModules.forEach(function(l){ primaryWeights[l] = primaryModuleWeights[l] || 0; });
+
+    // Title shows the selected group's total in the primary dataset.
     selectedGroupTitle = selectedGroup;
-    selectedGroupTotalValue = Object.values(primaryWeights).reduce((a, b) => a + b, 0);
-    primaryWeights = Object.fromEntries(topModules);
+    selectedGroupTotalValue = Object.values(primaryModuleWeights).reduce((a, b) => a + b, 0);
   } else {
     // Use top-level groups without filtering
     lastTopGroups.forEach(g => {
@@ -1079,7 +1346,25 @@ function plotTimingDifference() {
     });
   }
 
-  var labels = Object.keys(primaryWeights);
+  // In the "All groups" view, show the union of the primary groups and any extra groups
+  // that exist only in a comparison dataset (their primary value is 0), so groups added by
+  // a comparison still appear. In the focused (module-level) view keep the primary modules.
+  var labels;
+  if (selectedGroup) {
+    labels = Object.keys(primaryWeights);
+  } else {
+    var primaryKeys = Object.keys(primaryWeights);
+    var seen = {};
+    primaryKeys.forEach(function(l){ seen[l] = true; });
+    var extraGroups = [];
+    comparisonDatasets.forEach(function(cd){
+      Object.keys(cd.weights).forEach(function(l){
+        if (!seen[l]) { seen[l] = true; extraGroups.push(l); }
+      });
+    });
+    extraGroups.sort(function(a,b){ return a.localeCompare(b); });
+    labels = primaryKeys.concat(extraGroups);
+  }
   var topDatasets = [];
   var bottomDatasets = [];
 
@@ -1091,39 +1376,15 @@ function plotTimingDifference() {
     selectedGroup ? `${selectedGroupTitle} - Total ${current.title}: ${selectedGroupTotalValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 1 })} ${current.unit}` 
                   : "All Groups diff";
 
-  // Color palette from https://arxiv.org/pdf/2107.02270
-  var colors = [
-    'rgba(63, 144, 218, 0.6)', 
-    'rgba(255, 169, 14, 0.6)', 
-    'rgba(189, 31, 1, 0.6)', 
-    'rgba(148, 164, 162, 0.6)', 
-    'rgba(131, 45, 182, 0.6)',
-    'rgba(169, 107, 89, 0.6)',
-    'rgba(231, 99, 0, 0.6)',
-    'rgba(185, 172, 112, 0.6)',
-    'rgba(113, 117, 129, 0.6)',
-    'rgba(146, 218, 221, 0.6)'
-  ];
-  var borderColors = [
-    'rgba(63, 144, 218, 1)', 
-    'rgba(255, 169, 14, 1)', 
-    'rgba(189, 31, 1, 1)', 
-    'rgba(148, 164, 162, 1)', 
-    'rgba(131, 45, 182, 1)',
-    'rgba(169, 107, 89, 1)',
-    'rgba(231, 99, 0, 1)',
-    'rgba(185, 172, 112, 1)',
-    'rgba(113, 117, 129, 1)',
-    'rgba(146, 218, 221, 1)'
-  ];
+  // Diff-view colour palette is defined once at module scope (diffColours / diffBorderColours).
 
   // Primary dataset
   var primaryData = labels.map(label => primaryWeights[label] || 0);
   topDatasets.push({
     label: config.dataset.split('/').pop() || "Primary",
     data: primaryData,
-    backgroundColor: colors[0],
-    borderColor: borderColors[0],
+    backgroundColor: diffColours[0],
+    borderColor: diffBorderColours[0],
     borderWidth: 1
   });
 
@@ -1139,8 +1400,8 @@ function plotTimingDifference() {
     topDatasets.push({
       label: cd.name.split('/').pop(),
       data: comparisonData,
-      backgroundColor: colors[(index + 1) % colors.length],
-      borderColor: borderColors[(index + 1) % borderColors.length],
+      backgroundColor: diffColours[(index + 1) % diffColours.length],
+      borderColor: diffBorderColours[(index + 1) % diffBorderColours.length],
       borderWidth: 1
     });
 
@@ -1156,8 +1417,8 @@ function plotTimingDifference() {
     bottomDatasets.push({
       label: (isRelativeDiff ? '%Diff ' : 'Diff ') + `${cd.name.split('/').pop()} - ${config.dataset.split('/').pop()}`,
       data: differences,
-      backgroundColor: colors[(index + 1) % colors.length],
-      borderColor: borderColors[(index + 1) % borderColors.length],
+      backgroundColor: diffColours[(index + 1) % diffColours.length],
+      borderColor: diffBorderColours[(index + 1) % diffBorderColours.length],
       borderWidth: 1
     });
   });
@@ -1248,6 +1509,9 @@ function plotTimingDifference() {
       }
     }
   });
+
+  // Mirror the resulting view state (including the focused group) into the URL.
+  syncComparisonURL();
 }
 
 // Helper to extract module-level weights for a selected top group from cached tree
