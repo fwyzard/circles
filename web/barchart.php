@@ -87,6 +87,16 @@ Client-side (JavaScript):
       print("var groups = [ " . join(", ", array_map("preformat", glob('groups/*.json'))) . " ];\n");
       print("var colours = [ " . join(", ", array_map("preformat", glob('colours/*.json'))) . " ];\n");
     }
+
+    // Always emit the modification time of each grouping file so the client
+    // can append it as a cache-busting query parameter and re-fetch groups/*.json
+    // as soon as it changes on disk.
+    print("var group_versions = { " . join(", ", array_map(function($file) {
+      return "\"" . basename($file, ".json") . "\": " . (@filemtime($file) ?: 0);
+    }, glob('groups/*.json'))) . " };\n");
+    print("var colour_versions = { " . join(", ", array_map(function($file) {
+      return "\"" . basename($file, ".json") . "\": " . (@filemtime($file) ?: 0);
+    }, glob('colours/*.json'))) . " };\n");
   ?>
   </script>
 
