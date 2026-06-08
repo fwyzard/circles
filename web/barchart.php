@@ -900,6 +900,93 @@ function colourSwatchHTML(position){
 // Build the comparison list, refresh the add-select and the shareable URL
 // In diff view each row also shows the colour the top diff plot assigns to
 // that dataset. Does NOT redraw the charts.
+
+// Dataset reordering
+// The list is treated as one ordered set [primary, ...comparisons]; the up/down arrows
+// move an entry within it and whatever ends up first becomes the primary. A named primary
+// can be demoted (and a comparison promoted)
+// Qn uploaded local file stays fixed at the top (it has no name to re-group as a comparison).
+
+// Names that take part in reordering, and whether the primary is among them.
+function reorderableList(){
+  if (config.local || !config.dataset){
+    return { names: comparisonDatasets.map(function(c){ return c.name; }), hasPrimary: false };
+  }
+  return { names: [config.dataset].concat(comparisonDatasets.map(function(c){ return c.name; })), hasPrimary: true };
+}
+
+// Up/down arrow buttons for the row at the given index within the reorderable list.
+function reorderArrowsHTML(reorderIndex, total){
+  if (reorderIndex < 0 || total <= 1) return ''; // nothing to reorder (or a fixed local primary)
+  var up = '<button type="button" title="Move up" style="padding:0 5px;"'
+    + (reorderIndex <= 0 ? ' disabled' : '')
+    + ' onclick="moveDataset('+reorderIndex+',-1)">&#9650;</button>';
+  var down = '<button type="button" title="Move down" style="padding:0 5px;"'
+    + (reorderIndex >= total-1 ? ' disabled' : '')
+    + ' onclick="moveDataset('+reorderIndex+',1)">&#9660;</button>';
+  return up + down;
+}
+
+// Remove ("x") button for a comparison row. When placeholder is true, render an invisible
+// button of the same size so the arrows on the (non-removable) primary row line up with
+// those on the comparison rows.
+function removeButtonHTML(name, placeholder){
+  if (placeholder){
+    return '<button type="button" tabindex="-1" aria-hidden="true" style="padding:1px 4px; visibility:hidden;">x</button>';
+  }
+  return '<button type="button" title="Remove" style="padding:1px 4px;" onclick="removeComparisonDataset(\''
+    + name.replace(/'/g,"\\'") + '\')">x</button>';
+}
+
+// Move the entry at reorderIndex by delta (-1 up, +1 down) and apply the new order.
+function moveDataset(reorderIndex, delta){
+  var rl = reorderableList();
+  var names = rl.names.slice();
+  var j = reorderIndex + delta;
+  if (j < 0 || j >= names.length) return;
+  var tmp = names[reorderIndex]; names[reorderIndex] = names[j]; names[j] = tmp;
+  if (rl.hasPrimary && names[0] !== config.dataset){
+    changePrimaryDataset(names[0], names.slice(1)); // a swap across the primary slot
+  } else {
+    reorderComparisonsTo(rl.hasPrimary ? names.slice(1) : names);
+  }
+}
+
+// Reorder the comparison datasets to match the given list of names; redraws + syncs URL.
+function reorderComparisonsTo(newCompNames){
+  comparisonDatasets = newCompNames
+    .map(function(n){ return comparisonDatasets.find(function(c){ return c.name === n; }); })
+    .filter(Boolean);
+  refreshComparisonList();
+}
+
+// Promote newPrimary to the primary dataset (its raw is already cached as a comparison),
+// demote the current primary into the comparison set, and rebuild in the requested order.
+function changePrimaryDataset(newPrimary, newCompNames){
+  var oldPrimary = config.dataset;
+  if (oldPrimary && current.dataset) comparisonCache[oldPrimary] = current.dataset; // keep raw for re-grouping
+  config.dataset = newPrimary;
+  config.local = false;
+  current.dataset = comparisonCache[newPrimary] || current.dataset;
+  // Reflect the new primary in the Dataset dropdown.
+  var menu = document.getElementById('dataset_menu');
+  if (menu){
+    for (var i=0;i<menu.options.length;i++){
+      if (menu.options[i].value === newPrimary){ menu.selectedIndex = i; break; }
+    }
+  }
+  // Rebuild the comparison set in the requested order (weights for the current metric/grouping).
+  comparisonDatasets = newCompNames.map(function(n){
+    var raw = comparisonCache[n];
+    if (!raw) return null;
+    var r = computeComparisonWeights(n, raw);
+    return { name:n, weights:r.weights, total:r.total };
+  }).filter(Boolean);
+  updateDownloadButtonLabel();
+  renderComparisonList();   // list + add-select + URL (no chart redraw here)
+  scheduleDataViewUpdate(); // rebuild the primary data and redraw the charts in the active view
+}
+
 function renderComparisonList(){
   var list = document.getElementById('comparison_list');
   if (!list) return;
@@ -907,31 +994,43 @@ function renderComparisonList(){
   // Colour swatches are only meaningful in diff view, where the top plot colours each
   // dataset; the stacked view colours by group instead.
   var showSwatches = isDiffView && comparisonDatasets.length > 0;
+  var rl = reorderableList();
+  var total = rl.names.length;
+
+  function rowDiv(){
+    var div = document.createElement('div');
+    div.style.display='flex';
+    div.style.justifyContent='space-between';
+    div.style.alignItems='center';
+    div.style.gap='4px';
+    return div;
+  }
 
   // Always show the primary dataset first, clearly labeled and not removable, so it
   // is obvious at a glance which dataset the comparisons are being measured against.
   var primaryName = config.local ? "local file" : config.dataset;
   if (primaryName){
-    var pdiv = document.createElement('div');
-    pdiv.style.display='flex';
-    pdiv.style.justifyContent='space-between';
-    pdiv.style.alignItems='center';
-    pdiv.style.gap='4px';
+    var primaryIndex = rl.hasPrimary ? 0 : -1; // -1 -> not reorderable (uploaded local file)
+    var pdiv = rowDiv();
     pdiv.style.opacity='0.7';
     pdiv.innerHTML = '<span style="white-space:nowrap; overflow:hidden; max-width:1000px;" title="'+escapeHTML(primaryName)+'">'
-      + (showSwatches ? colourSwatchHTML(0) : '') + escapeHTML(primaryName) + ' <b>(primary)</b></span>';
+      + (showSwatches ? colourSwatchHTML(0) : '') + escapeHTML(primaryName) + ' <b>(primary)</b></span>'
+      + '<span style="white-space:nowrap; flex:0 0 auto;">'
+      + reorderArrowsHTML(primaryIndex, total)
+      + removeButtonHTML(null, true) // invisible spacer so arrows align with the comparison rows
+      + '</span>';
     list.appendChild(pdiv);
   }
 
   comparisonDatasets.forEach(function(c, i){
-    var div=document.createElement('div');
-    div.style.display='flex';
-    div.style.justifyContent='space-between';
-    div.style.alignItems='center';
-    div.style.gap='4px';
+    var reorderIndex = rl.hasPrimary ? i+1 : i;
+    var div = rowDiv();
     div.innerHTML = '<span style="white-space:nowrap; overflow:hidden; max-width:1000px;" title="'+c.name+'">'
       + (showSwatches ? colourSwatchHTML(i+1) : '') + escapeHTML(c.name)+'</span>'
-      +'<button type="button" style="padding:1px 4px;" onclick="removeComparisonDataset(\''+c.name.replace(/'/g,"\\'")+'\')">x</button>';
+      + '<span style="white-space:nowrap; flex:0 0 auto;">'
+      + reorderArrowsHTML(reorderIndex, total)
+      + removeButtonHTML(c.name, false)
+      + '</span>';
     list.appendChild(div);
   });
 
