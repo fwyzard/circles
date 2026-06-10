@@ -380,6 +380,27 @@ function updateMetrics() {
   updatePage();
 }
 
+// Build a cache-busting query string from a version map (server-side file
+// modification times emitted as `group_versions` / `colour_versions` by
+// piechart.php / barchart.php). This forces the browser to re-fetch the file as
+// soon as it changes on disk, while still allowing the cache to be reused when it
+// has not. Falls back to a per-load timestamp if the version map is unavailable,
+// so freshness is guaranteed either way.
+function versionQuery(versions, name) {
+  if (versions != null && versions[name] != null) {
+    return "?v=" + versions[name];
+  }
+  return "?v=" + Date.now();
+}
+
+function groupCacheBuster(name) {
+  return versionQuery(typeof group_versions !== "undefined" ? group_versions : null, name);
+}
+
+function colourCacheBuster(name) {
+  return versionQuery(typeof colour_versions !== "undefined" ? colour_versions : null, name);
+}
+
 // Update the configuration with the selected grouping
 function updateGroups() {
   var menu = document.getElementById("groups_menu");
@@ -387,7 +408,7 @@ function updateGroups() {
   config.groups = menu.options[index].value;
 
   // load the module groups, then update the page
-  loadJsonInto(current, "groups", "groups/" + config.groups + ".json", compileGroups);
+  loadJsonInto(current, "groups", "groups/" + config.groups + ".json" + groupCacheBuster(config.groups), compileGroups);
 }
 
 // Update the configuration with the selected colour scheme
@@ -397,7 +418,7 @@ function updateColours() {
   config.colours = menu.options[index].value;
 
   // load the colour scheme, then update the page
-  loadJsonInto(current, "colours", "colours/" + config.colours + ".json", updatePage);
+  loadJsonInto(current, "colours", "colours/" + config.colours + ".json" + colourCacheBuster(config.colours), updatePage);
 }
 
 // Update the configuration with the visibility of the leaf labels
@@ -753,7 +774,7 @@ async function getImage() {
 $(document).ready(function () {
   console.log("Loading configuration: " + JSON.stringify(config));
   // load the colour scheme
-  loadJsonInto(current, "colours", "colours/" + config.colours + ".json", function () { });
+  loadJsonInto(current, "colours", "colours/" + config.colours + ".json" + colourCacheBuster(config.colours), function () { });
 
   // load the available datasets, and the resources actually available from the dataset
   loadAvailableDatasets();
