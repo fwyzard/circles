@@ -25,3 +25,21 @@ jobs:
             echo "Checking $file"
             jq empty "$file"
           done
+
+      - name: Validate color references
+        shell: bash
+        run: |
+          valid_colors=$(jq -r 'keys[]' web/colours/default.json | sort)
+          for file in web/groups/hlt*.json; do
+            echo "Validating color references in $file"
+            jq -r 'to_entries[] | .value' "$file" 2>/dev/null | while read -r value; do
+              if [ -n "$value" ] && [ "$value" != "null" ]; then
+                # Extract color name before the | character (e.g., "HLT|GPU" -> "HLT")
+                color_name="${value%%|*}"
+                if ! echo "$valid_colors" | grep -q "^${color_name}$"; then
+                  echo "ERROR: Invalid color reference '$color_name' in $file"
+                  exit 1
+                fi
+              fi
+            done
+          done
