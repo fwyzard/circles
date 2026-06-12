@@ -17,7 +17,7 @@ from matplotlib.patches import Patch
 import mplhep as hep
 hep.style.use("CMS")
 
-from compare_json_hist import *
+import compare_json_hist as cjh
 
 def union_categories(aggs: List[Dict[str, float]]) -> List[str]:
     cats = set()
@@ -39,12 +39,12 @@ def dominant_package_for_cat(
     contrib = defaultdict(float)
     for mods, tev in zip(mods_by_file, total_events_by_file):
         for m in mods:
-            if key_for_level(m, level) != cat:
+            if cjh.key_for_level(m, level) != cat:
                 continue
-            v = numeric_metric(m, metric, normalise, tev)
+            v = cjh.numeric_metric(m, metric, normalise, tev)
             if v is None:
                 continue
-            contrib[package_from_expanded(m)] += v
+            contrib[cjh.package_from_expanded(m)] += v
     return max(contrib.items(), key=lambda x: x[1])[0] if contrib else "Unassigned"
 
 # ------------------------
@@ -118,7 +118,7 @@ def plot_stacked_bars(
     # If too many categories, legend can get huge; user can restrict with --top in future if needed.
     ax1.legend(loc="upper left", bbox_to_anchor=(1, 1.05), fontsize=fontsize-2, frameon=False)
     hep.cms.text(f"{left_text}", ax=ax1, fontsize=fontsize+4)
-    hep.cms.lumitext(f"{right_text}", ax=ax1, fontsize=fontsize+4)
+    hep.add_text(f"{right_text}", ax=ax1, fontsize=fontsize+4, loc='over right')
 
     # ---- Bottom panel: delta vs baseline per file, split by category ----
     ax2 = fig.add_subplot(gs[1, 0], sharex=ax1)
@@ -158,7 +158,7 @@ def plot_stacked_bars(
 
     if save:
         save.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(save, dpi=150, bbox_inches="tight")
+        fig.savefig(save, dpi=300, bbox_inches="tight")
         print(f"Saved figure to: {save}")
     if show and not save:
         plt.show()
@@ -174,7 +174,8 @@ def main():
     p.add_argument("json_files", nargs="+", type=Path, help="Timing JSON files (2 or more)")
 
     # Groups & colors
-    p.add_argument("--group", type=Path, required=True, help="Grouping JSON (TypeGlob|LabelGlob -> Package)")
+    p.add_argument("--group", type=Path, required=True,
+                   help="Grouping JSON (TypeGlob|LabelGlob -> Package). Template available at circles/web/groups/hlt.json.")
     p.add_argument("--colors", type=Path, default=None, help="Colors JSON mapping Package -> HEX")
     p.add_argument("--show-unassigned", action="store_true", help="Print failures for unassigned modules.",
     )
@@ -221,8 +222,8 @@ def main():
         raise SystemExit("ERROR: --baseline must be a valid index into json_files.")
 
     # Load grouping + colors
-    group_data = load_grouping(args.group)
-    color_map = load_colors(args.colors)
+    group_data = cjh.load_grouping(args.group)
+    color_map = cjh.load_colors(args.colors)
 
     # Load, augment, filter, aggregate each file
     aggs = []
@@ -230,24 +231,24 @@ def main():
     total_events_by_file = []
 
     for jf in args.json_files:
-        data = load_full_json(jf)
-        tev = get_total_events(data)
+        data = cjh.load_full_json(jf)
+        tev = cjh.get_total_events(data)
         total_events_by_file.append(tev)
 
-        data = augment_json(data, group_data, args.show_unassigned)
+        data = cjh.augment_json(data, group_data, args.show_unassigned)
         mods = data["modules"]
 
         # Filters
         if args.ignore_unassigned:
-            mods = [m for m in mods if package_from_expanded(m) != "Unassigned"]
+            mods = [m for m in mods if cjh.package_from_expanded(m) != "Unassigned"]
         if args.package:
-            mods = [m for m in mods if package_from_expanded(m) == args.package]
+            mods = [m for m in mods if cjh.package_from_expanded(m) == args.package]
         if args.package_regex:
             rx = re.compile(args.package_regex)
-            mods = [m for m in mods if rx.search(package_from_expanded(m))]
+            mods = [m for m in mods if rx.search(cjh.package_from_expanded(m))]
 
         mods_by_file.append(mods)
-        aggs.append(aggregate(mods, args.metric, args.normalise, args.level, tev))
+        aggs.append(cjh.aggregate(mods, args.metric, args.normalise, args.level, tev))
 
     cats = union_categories(aggs)
 
@@ -271,7 +272,7 @@ def main():
     cat_colors = []
     for c in cats:
         pkg = pkg_for_cat.get(c, "others")
-        cat_colors.append(color_for_category(c, args.level, pkg, color_map))
+        cat_colors.append(cjh.color_for_category(c, args.level, pkg, color_map))
 
     metric_label = "Time per event [ms]" if args.normalise else "Time [ms]"
     subtitle_bits = [f"level={args.level}"]

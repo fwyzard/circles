@@ -109,7 +109,7 @@ web/
 README.md
 ```
 
-Just copy the `web/` drectory to a web server. Two versions of the web page are available:
+Just copy the `web/` directory to a web server. Two versions of the web page are available:
   - `piechart.php` requires PHP to be enabled in the web server; 
   - `piechart.html` does not use PHP, but requires support for cgi-bin
     scripts for the `cgi-bin` directory.
@@ -132,14 +132,14 @@ The metric, grouping and colour style can be changed directly on the web page.
 # Working with JSON files
 
 While the JSON files produces by the `FastTimerService` can be visualised
-directly in the web interface, under the `scripts/` directory there some python
-scripts to perfrm common operations on them: merging multiple files, converting
+directly in the web interface, under the `scripts/` directory there are some python
+scripts which perform common operations on them: merging multiple files, converting
 from the old format, *etc*.
 
 ## Merging multiple JSON files
 
-It is possible to merge multiple JSON files, for exmple to "harvest" the results
-of multiple jobs running in paralle, using the `merge.py` script.
+It is possible to merge multiple JSON files, for example to "harvest" the results
+of multiple jobs running in parallel, using the `merge.py` script.
 
 ```bash
 ./scripts/merge.py input1.json input2.json ... > output.json
@@ -157,7 +157,7 @@ to what was produced by `make_circles.py`.
 While the old files contained less information, it is possible to use the script
 `convert.py` (found in the `scripts/` subdirectory) to convert them to the
 latest format and visualise them on the web interface, and *e.g.* change the
-grouping and colour scheme on fly:
+grouping and colour scheme on the fly:
 ```bash
 ./scripts/convert.py old.json > new.json
 ```
@@ -177,5 +177,5 @@ The groups and colour scheme to use can be specified via the `-g` and `-c` optio
 The script `find_unassigned.py` can be used to find all entries `module type|module label`
 in a JSON file that are not assigned to any group:
 ```bash
-./scripts/find_unassigned.py resurces.json
+./scripts/find_unassigned.py resources.json
 ```
