@@ -26,6 +26,19 @@ jobs:
             jq empty "$file"
           done
 
+      - name: Validate keys contain '|'
+        shell: bash
+        run: |
+          for file in web/groups/hlt*.json; do
+            echo "Checking keys in $file"
+            jq -r 'keys[]' "$file" | while read -r key; do
+              if [[ "$key" != *"|"* ]]; then
+                echo "ERROR: key '$key' missing '|' in $file"
+                exit 1
+              fi
+            done
+          done
+
       - name: Validate color references
         shell: bash
         run: |
