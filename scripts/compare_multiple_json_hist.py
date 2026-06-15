@@ -62,6 +62,7 @@ def plot_stacked_bars(
     right_text: Optional[str],
     left_text: Optional[str],
     tag_text: Optional[str],
+    vlines: Optional[int],
     rotate_labels: int,
     truncate: Optional[int],
     fontsize: int,
@@ -103,13 +104,14 @@ def plot_stacked_bars(
         bottoms = [b + s for b, s in zip(bottoms, seg)]
 
     ax1.set_xticks(x)
-    ax1.set_xticklabels(file_labedhhudcbvrfindvtvhfki
-                        ls, fontsize=fontsize, rotation=rotate_labels)
+    ax1.set_xticklabels(file_labels, fontsize=fontsize, rotation=rotate_labels)
     ax1.tick_params(axis='x', which='both', length=0) # remove the x ticks, keeping the labels
     ax1.tick_params(axis='y', labelsize=fontsize)
     ax1.set_ylabel(metric_label, fontsize=fontsize+2)
     ax1.set_ylim(0, max(bottoms) * 1.15 if bottoms else 1.0)
     ax1.grid(axis='y', linestyle=':', alpha=0.5)
+    for vline in vlines:
+        ax1.axvline(vline+0.5, linestyle='--', linewidth=1, color='gray')
 
     # annotate totals
     ymax = max(bottoms) if bottoms else 0.0
@@ -155,7 +157,9 @@ def plot_stacked_bars(
     ax2.set_xticklabels(file_labels, fontsize=fontsize, rotation=rotate_labels)
     ax2.tick_params(axis='x', which='both', length=0) # remove the x ticks, keeping the labels
     ax2.grid(axis='y', linestyle=':', alpha=0.5)
-    
+    for vline in vlines:
+        ax2.axvline(vline+0.5, linestyle='--', linewidth=1, color='gray')
+
     mmax = max(pos_bottom) if len(pos_bottom) > 0 else 0
     mmin = min(neg_bottom) if len(neg_bottom) > 0 else 0
     pad_margin = 0.10 # blank margin to add to the top and bottom of the lower pad
@@ -210,6 +214,8 @@ def main():
     p.add_argument("--left-text", default="", help="Left-side label (e.g. Simulation Preliminary)")
     p.add_argument("--right-text", default="", help="Right-side label (e.g. 13.6 TeV)")
     p.add_argument("--tag-text", default="", help="Tag label placed in the internal top left corner (e.g. 'June 2026')")
+    p.add_argument("--vlines", default=[], type=int, nargs='+',
+                   help="0-indexed column position 'j' to draw dashed vertical lines, which are drawn exactly between columns j and j+1.")
     p.add_argument("--metric-precision", type=int, default=2, help="Decimal places for metric annotations (default: 2)")
 
     # Baseline for delta
@@ -225,13 +231,18 @@ def main():
     print(args.labels)
     print(args.json_files)
 
-    if args.labels and len(args.labels) != len(args.json_files):
+    njson = len(args.json_files)
+    if args.labels and len(args.labels) != njson:
         raise SystemExit("ERROR: --labels must match number of input JSON files.")
 
     file_labels = args.labels if args.labels else [f.name for f in args.json_files]
-    if not (0 <= args.baseline < len(args.json_files)):
+    if not (0 <= args.baseline < njson):
         raise SystemExit("ERROR: --baseline must be a valid index into json_files.")
 
+    if any(x > njson-2 or x < 0 for x in args.vlines):
+        raise SystemExit("ERROR: At least one column index in --vlines is located outside "
+                         f"the range defined by the {len(args.json_files)} input files (i.e. between 0 and {njson-2}).")
+    
     # Load grouping + colors
     group_data = cjh.load_grouping(args.group)
     color_map = cjh.load_colors(args.colors)
@@ -306,6 +317,7 @@ def main():
         right_text=args.right_text,
         left_text=args.left_text,
         tag_text=args.tag_text,
+        vlines=args.vlines,
         ndigis=args.metric_precision,
         rotate_labels=args.rotate_labels,
         truncate=None,
