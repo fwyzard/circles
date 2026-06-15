@@ -103,11 +103,13 @@ def plot_stacked_bars(
         bottoms = [b + s for b, s in zip(bottoms, seg)]
 
     ax1.set_xticks(x)
-    ax1.set_xticklabels(file_labels, fontsize=fontsize, rotation=rotate_labels)
-    ax1.tick_params(axis="y", labelsize=fontsize)
+    ax1.set_xticklabels(file_labedhhudcbvrfindvtvhfki
+                        ls, fontsize=fontsize, rotation=rotate_labels)
+    ax1.tick_params(axis='x', which='both', length=0) # remove the x ticks, keeping the labels
+    ax1.tick_params(axis='y', labelsize=fontsize)
     ax1.set_ylabel(metric_label, fontsize=fontsize+2)
     ax1.set_ylim(0, max(bottoms) * 1.15 if bottoms else 1.0)
-    ax1.grid(axis="y", linestyle=":", alpha=0.5)
+    ax1.grid(axis='y', linestyle=':', alpha=0.5)
 
     # annotate totals
     ymax = max(bottoms) if bottoms else 0.0
@@ -146,12 +148,13 @@ def plot_stacked_bars(
         pos_bottom += pos
         neg_bottom += neg
 
-    ax2.axhline(0, linestyle="--", linewidth=1, color='black')
-    ax2.tick_params(axis="y", labelsize=fontsize, rotation=rotate_labels)
-    ax2.set_ylabel(f"Δt vs {file_labels[baseline_idx]} [ms]", fontsize=fontsize+2)
+    ax2.axhline(0, linestyle='--', linewidth=1, color='black')
+    ax2.tick_params(axis='y', labelsize=fontsize, rotation=rotate_labels)
+    ax2.set_ylabel(f'Δt vs {file_labels[baseline_idx]} [ms]', fontsize=fontsize+2)
     ax2.set_xticks(x)
     ax2.set_xticklabels(file_labels, fontsize=fontsize, rotation=rotate_labels)
-    ax2.grid(axis="y", linestyle=":", alpha=0.5)
+    ax2.tick_params(axis='x', which='both', length=0) # remove the x ticks, keeping the labels
+    ax2.grid(axis='y', linestyle=':', alpha=0.5)
     
     mmax = max(pos_bottom) if len(pos_bottom) > 0 else 0
     mmin = min(neg_bottom) if len(neg_bottom) > 0 else 0
