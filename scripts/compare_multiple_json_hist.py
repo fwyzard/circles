@@ -150,6 +150,11 @@ def plot_stacked_bars(
     ax2.set_xticks(x)
     ax2.set_xticklabels(file_labels, fontsize=fontsize, rotation=rotate_labels)
     ax2.grid(axis="y", linestyle=":", alpha=0.5)
+    
+    mmax = max(pos_bottom) if len(pos_bottom) > 0 else 0
+    mmin = min(neg_bottom) if len(neg_bottom) > 0 else 0
+    pad_margin = 0.10 # blank margin to add to the top and bottom of the lower pad
+    ax2.set_ylim(mmin - pad_margin * (mmax - mmin), mmax + pad_margin * (mmax - mmin))
 
     if title:
         fig.suptitle(title)
