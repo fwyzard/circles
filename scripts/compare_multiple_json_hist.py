@@ -61,6 +61,7 @@ def plot_stacked_bars(
     ndigis: int,
     right_text: Optional[str],
     left_text: Optional[str],
+    tag_text: Optional[str],
     rotate_labels: int,
     truncate: Optional[int],
     fontsize: int,
@@ -119,6 +120,7 @@ def plot_stacked_bars(
     ax1.legend(loc="upper left", bbox_to_anchor=(1, 1.05), fontsize=fontsize-2, frameon=False)
     hep.cms.text(f"{left_text}", ax=ax1, fontsize=fontsize+4)
     hep.add_text(f"{right_text}", ax=ax1, fontsize=fontsize+4, loc='over right')
+    hep.add_text(f"{tag_text}", ax=ax1, fontsize=fontsize+4, loc='top left')
 
     # ---- Bottom panel: delta vs baseline per file, split by category ----
     ax2 = fig.add_subplot(gs[1, 0], sharex=ax1)
@@ -204,6 +206,7 @@ def main():
     p.add_argument("--label-fontsize", type=int, default=10, help="Font size for x-axis labels")
     p.add_argument("--left-text", default="", help="Left-side label (e.g. Simulation Preliminary)")
     p.add_argument("--right-text", default="", help="Right-side label (e.g. 13.6 TeV)")
+    p.add_argument("--tag-text", default="", help="Tag label placed in the internal top left corner (e.g. 'June 2026')")
     p.add_argument("--metric-precision", type=int, default=2, help="Decimal places for metric annotations (default: 2)")
 
     # Baseline for delta
@@ -299,6 +302,7 @@ def main():
         subtitle=subtitle,
         right_text=args.right_text,
         left_text=args.left_text,
+        tag_text=args.tag_text,
         ndigis=args.metric_precision,
         rotate_labels=args.rotate_labels,
         truncate=None,
