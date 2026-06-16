@@ -64,6 +64,7 @@ def plot_stacked_bars(
     left_text: Optional[str],
     tag_text: Optional[str],
     vlines: Optional[int],
+    order: Optional[str],
     rotate_labels: int,
     truncate: Optional[int],
     fontsize: int,
@@ -96,8 +97,12 @@ def plot_stacked_bars(
 
     # stack order: small to large average contribution (prettier)
     avg = np.mean(np.array(values_by_file), axis=0)  # per-cat average
-    stack_order = list(np.argsort(avg))  # ascending
-
+    if order == 'absolute_increase':
+        stack_order = list(np.argsort(avg)) # ascending
+    elif order == 'relative_increase':
+        rel_dispersion = np.std(np.array(values_by_file), axis=0) / avg
+        stack_order = list(np.argsort(rel_dispersion)) # ascending
+        
     for j in stack_order:
         seg = [values_by_file[i][j] for i in range(n_files)]
         ax1.bar(x, seg, bottom=bottoms, width=0.7, color=cat_colors[j], edgecolor="black", linewidth=0.4,
@@ -221,6 +226,8 @@ def main():
     p.add_argument("--tag-text", default="", help="Tag label placed in the internal top left corner (e.g. 'June 2026')")
     p.add_argument("--vlines", default=[], type=int, nargs='+',
                    help="0-indexed column position 'j' to draw dashed vertical lines, which are drawn exactly between columns j and j+1.")
+    p.add_argument("--order", default="absolute_increase", choices=('absolute_increase', 'relative_increase'),
+                   help="Category order (the same in each column). 'absolute_increasing' puts on top the categories which, averaged over all columns, represent the larger time contributions. 'relative_increasing' puts on top the categories which, when considering all columns, change the most (largest std / average).")
     p.add_argument("--metric-precision", type=int, default=2, help="Decimal places for metric annotations (default: 2)")
 
     # Baseline for delta
@@ -323,6 +330,7 @@ def main():
         left_text=args.left_text,
         tag_text=args.tag_text,
         vlines=args.vlines,
+        order=args.order,
         ndigis=args.metric_precision,
         rotate_labels=args.rotate_labels,
         truncate=None,
