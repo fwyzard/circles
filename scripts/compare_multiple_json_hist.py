@@ -129,7 +129,7 @@ def plot_stacked_bars(
         hep.cms.lumitext(f"{right_text}", ax=ax1, fontsize=fontsize+4)
     else:
         hep.add_text(f"{right_text}", ax=ax1, fontsize=fontsize+4, loc='over right')
-    hep.add_text(f"{tag_text}", ax=ax1, fontsize=fontsize+4, loc='top left')
+    hep.add_text(f"{tag_text}", ax=ax1, fontsize=fontsize, loc='top left')
 
     # ---- Bottom panel: delta vs baseline per file, split by category ----
     ax2 = fig.add_subplot(gs[1, 0], sharex=ax1)
