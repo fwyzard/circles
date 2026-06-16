@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 from collections import defaultdict, OrderedDict
+from packaging import version
 
 import matplotlib
 matplotlib.use('Agg')
@@ -17,7 +18,7 @@ from matplotlib.patches import Patch
 import mplhep as hep
 hep.style.use("CMS")
 
-from compare_json_hist import *
+import compare_json_hist as cjh
 
 def union_categories(aggs: List[Dict[str, float]]) -> List[str]:
     cats = set()
@@ -39,12 +40,12 @@ def dominant_package_for_cat(
     contrib = defaultdict(float)
     for mods, tev in zip(mods_by_file, total_events_by_file):
         for m in mods:
-            if key_for_level(m, level) != cat:
+            if cjh.key_for_level(m, level) != cat:
                 continue
-            v = numeric_metric(m, metric, normalise, tev)
+            v = cjh.numeric_metric(m, metric, normalise, tev)
             if v is None:
                 continue
-            contrib[package_from_expanded(m)] += v
+            contrib[cjh.package_from_expanded(m)] += v
     return max(contrib.items(), key=lambda x: x[1])[0] if contrib else "Unassigned"
 
 # ------------------------
@@ -61,6 +62,9 @@ def plot_stacked_bars(
     ndigis: int,
     right_text: Optional[str],
     left_text: Optional[str],
+    tag_text: Optional[str],
+    vlines: Optional[int],
+    order: Optional[str],
     rotate_labels: int,
     truncate: Optional[int],
     fontsize: int,
@@ -93,8 +97,12 @@ def plot_stacked_bars(
 
     # stack order: small to large average contribution (prettier)
     avg = np.mean(np.array(values_by_file), axis=0)  # per-cat average
-    stack_order = list(np.argsort(avg))  # ascending
-
+    if order == 'absolute_increase':
+        stack_order = list(np.argsort(avg)) # ascending
+    elif order == 'relative_increase':
+        rel_dispersion = np.std(np.array(values_by_file), axis=0) / avg
+        stack_order = list(np.argsort(rel_dispersion)) # ascending
+        
     for j in stack_order:
         seg = [values_by_file[i][j] for i in range(n_files)]
         ax1.bar(x, seg, bottom=bottoms, width=0.7, color=cat_colors[j], edgecolor="black", linewidth=0.4,
@@ -103,10 +111,13 @@ def plot_stacked_bars(
 
     ax1.set_xticks(x)
     ax1.set_xticklabels(file_labels, fontsize=fontsize, rotation=rotate_labels)
-    ax1.tick_params(axis="y", labelsize=fontsize)
+    ax1.tick_params(axis='x', which='both', length=0) # remove the x ticks, keeping the labels
+    ax1.tick_params(axis='y', labelsize=fontsize)
     ax1.set_ylabel(metric_label, fontsize=fontsize+2)
     ax1.set_ylim(0, max(bottoms) * 1.15 if bottoms else 1.0)
-    ax1.grid(axis="y", linestyle=":", alpha=0.5)
+    ax1.grid(axis='y', linestyle=':', alpha=0.5)
+    for vline in vlines:
+        ax1.axvline(vline+0.5, linestyle='--', linewidth=1, color='gray')
 
     # annotate totals
     ymax = max(bottoms) if bottoms else 0.0
@@ -118,7 +129,12 @@ def plot_stacked_bars(
     # If too many categories, legend can get huge; user can restrict with --top in future if needed.
     ax1.legend(loc="upper left", bbox_to_anchor=(1, 1.05), fontsize=fontsize-2, frameon=False)
     hep.cms.text(f"{left_text}", ax=ax1, fontsize=fontsize+4)
-    hep.cms.lumitext(f"{right_text}", ax=ax1, fontsize=fontsize+4)
+    # mplhelp v1.0.0rc2 and later removed the "lumitext" method
+    if version.parse(hep.__version__) < version.parse("1.0.0rc2"):
+        hep.cms.lumitext(f"{right_text}", ax=ax1, fontsize=fontsize+4)
+    else:
+        hep.add_text(f"{right_text}", ax=ax1, fontsize=fontsize+4, loc='over right')
+    hep.add_text(f"{tag_text}", ax=ax1, fontsize=fontsize, loc='top left')
 
     # ---- Bottom panel: delta vs baseline per file, split by category ----
     ax2 = fig.add_subplot(gs[1, 0], sharex=ax1)
@@ -144,12 +160,20 @@ def plot_stacked_bars(
         pos_bottom += pos
         neg_bottom += neg
 
-    ax2.axhline(0, linestyle="--", linewidth=1, color='black')
-    ax2.tick_params(axis="y", labelsize=fontsize, rotation=rotate_labels)
-    ax2.set_ylabel(f"Δt vs {file_labels[baseline_idx]} [ms]", fontsize=fontsize+2)
+    ax2.axhline(0, linestyle='--', linewidth=1, color='black')
+    ax2.tick_params(axis='y', labelsize=fontsize, rotation=rotate_labels)
+    ax2.set_ylabel(f'Δt vs {file_labels[baseline_idx]} [ms]', fontsize=fontsize+2)
     ax2.set_xticks(x)
     ax2.set_xticklabels(file_labels, fontsize=fontsize, rotation=rotate_labels)
-    ax2.grid(axis="y", linestyle=":", alpha=0.5)
+    ax2.tick_params(axis='x', which='both', length=0) # remove the x ticks, keeping the labels
+    ax2.grid(axis='y', linestyle=':', alpha=0.5)
+    for vline in vlines:
+        ax2.axvline(vline+0.5, linestyle='--', linewidth=1, color='gray')
+
+    mmax = max(pos_bottom) if len(pos_bottom) > 0 else 0
+    mmin = min(neg_bottom) if len(neg_bottom) > 0 else 0
+    pad_margin = 0.10 # blank margin to add to the top and bottom of the lower pad
+    ax2.set_ylim(mmin - pad_margin * (mmax - mmin), mmax + pad_margin * (mmax - mmin))
 
     if title:
         fig.suptitle(title)
@@ -158,7 +182,7 @@ def plot_stacked_bars(
 
     if save:
         save.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(save, dpi=150, bbox_inches="tight")
+        fig.savefig(save, dpi=300, bbox_inches="tight")
         print(f"Saved figure to: {save}")
     if show and not save:
         plt.show()
@@ -174,7 +198,8 @@ def main():
     p.add_argument("json_files", nargs="+", type=Path, help="Timing JSON files (2 or more)")
 
     # Groups & colors
-    p.add_argument("--group", type=Path, required=True, help="Grouping JSON (TypeGlob|LabelGlob -> Package)")
+    p.add_argument("--group", type=Path, required=True,
+                   help="Grouping JSON (TypeGlob|LabelGlob -> Package). Template available at circles/web/groups/hlt.json.")
     p.add_argument("--colors", type=Path, default=None, help="Colors JSON mapping Package -> HEX")
     p.add_argument("--show-unassigned", action="store_true", help="Print failures for unassigned modules.",
     )
@@ -198,6 +223,11 @@ def main():
     p.add_argument("--label-fontsize", type=int, default=10, help="Font size for x-axis labels")
     p.add_argument("--left-text", default="", help="Left-side label (e.g. Simulation Preliminary)")
     p.add_argument("--right-text", default="", help="Right-side label (e.g. 13.6 TeV)")
+    p.add_argument("--tag-text", default="", help="Tag label placed in the internal top left corner (e.g. 'June 2026')")
+    p.add_argument("--vlines", default=[], type=int, nargs='+',
+                   help="0-indexed column position 'j' to draw dashed vertical lines, which are drawn exactly between columns j and j+1.")
+    p.add_argument("--order", default="absolute_increase", choices=('absolute_increase', 'relative_increase'),
+                   help="Category order (the same in each column). 'absolute_increasing' puts on top the categories which, averaged over all columns, represent the larger time contributions. 'relative_increasing' puts on top the categories which, when considering all columns, change the most (largest std / average).")
     p.add_argument("--metric-precision", type=int, default=2, help="Decimal places for metric annotations (default: 2)")
 
     # Baseline for delta
@@ -213,16 +243,21 @@ def main():
     print(args.labels)
     print(args.json_files)
 
-    if args.labels and len(args.labels) != len(args.json_files):
+    njson = len(args.json_files)
+    if args.labels and len(args.labels) != njson:
         raise SystemExit("ERROR: --labels must match number of input JSON files.")
 
     file_labels = args.labels if args.labels else [f.name for f in args.json_files]
-    if not (0 <= args.baseline < len(args.json_files)):
+    if not (0 <= args.baseline < njson):
         raise SystemExit("ERROR: --baseline must be a valid index into json_files.")
 
+    if any(x > njson-2 or x < 0 for x in args.vlines):
+        raise SystemExit("ERROR: At least one column index in --vlines is located outside "
+                         f"the range defined by the {len(args.json_files)} input files (i.e. between 0 and {njson-2}).")
+    
     # Load grouping + colors
-    group_data = load_grouping(args.group)
-    color_map = load_colors(args.colors)
+    group_data = cjh.load_grouping(args.group)
+    color_map = cjh.load_colors(args.colors)
 
     # Load, augment, filter, aggregate each file
     aggs = []
@@ -230,24 +265,24 @@ def main():
     total_events_by_file = []
 
     for jf in args.json_files:
-        data = load_full_json(jf)
-        tev = get_total_events(data)
+        data = cjh.load_full_json(jf)
+        tev = cjh.get_total_events(data)
         total_events_by_file.append(tev)
 
-        data = augment_json(data, group_data, args.show_unassigned)
+        data = cjh.augment_json(data, group_data, args.show_unassigned)
         mods = data["modules"]
 
         # Filters
         if args.ignore_unassigned:
-            mods = [m for m in mods if package_from_expanded(m) != "Unassigned"]
+            mods = [m for m in mods if cjh.package_from_expanded(m) != "Unassigned"]
         if args.package:
-            mods = [m for m in mods if package_from_expanded(m) == args.package]
+            mods = [m for m in mods if cjh.package_from_expanded(m) == args.package]
         if args.package_regex:
             rx = re.compile(args.package_regex)
-            mods = [m for m in mods if rx.search(package_from_expanded(m))]
+            mods = [m for m in mods if rx.search(cjh.package_from_expanded(m))]
 
         mods_by_file.append(mods)
-        aggs.append(aggregate(mods, args.metric, args.normalise, args.level, tev))
+        aggs.append(cjh.aggregate(mods, args.metric, args.normalise, args.level, tev))
 
     cats = union_categories(aggs)
 
@@ -271,7 +306,7 @@ def main():
     cat_colors = []
     for c in cats:
         pkg = pkg_for_cat.get(c, "others")
-        cat_colors.append(color_for_category(c, args.level, pkg, color_map))
+        cat_colors.append(cjh.color_for_category(c, args.level, pkg, color_map))
 
     metric_label = "Time per event [ms]" if args.normalise else "Time [ms]"
     subtitle_bits = [f"level={args.level}"]
@@ -293,6 +328,9 @@ def main():
         subtitle=subtitle,
         right_text=args.right_text,
         left_text=args.left_text,
+        tag_text=args.tag_text,
+        vlines=args.vlines,
+        order=args.order,
         ndigis=args.metric_precision,
         rotate_labels=args.rotate_labels,
         truncate=None,
