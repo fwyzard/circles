@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 from collections import defaultdict, OrderedDict
+from packaging import version
 
 import matplotlib
 matplotlib.use('Agg')
@@ -123,7 +124,11 @@ def plot_stacked_bars(
     # If too many categories, legend can get huge; user can restrict with --top in future if needed.
     ax1.legend(loc="upper left", bbox_to_anchor=(1, 1.05), fontsize=fontsize-2, frameon=False)
     hep.cms.text(f"{left_text}", ax=ax1, fontsize=fontsize+4)
-    hep.add_text(f"{right_text}", ax=ax1, fontsize=fontsize+4, loc='over right')
+    # mplhelp v1.0.0rc2 and later removed the "lumitext" method
+    if version.parse(hep.__version__) < version.parse("1.0.0rc2"):
+        hep.cms.lumitext(f"{right_text}", ax=ax1, fontsize=fontsize+4)
+    else:
+        hep.add_text(f"{right_text}", ax=ax1, fontsize=fontsize+4, loc='over right')
     hep.add_text(f"{tag_text}", ax=ax1, fontsize=fontsize+4, loc='top left')
 
     # ---- Bottom panel: delta vs baseline per file, split by category ----

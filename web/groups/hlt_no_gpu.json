@@ -680,7 +680,7 @@
   "PixelTrackSoAFromCUDAPhase1|": "Pixels|Host copy",
   "PixelTrackSoAFromCUDAPhase2|": "Pixels|Host copy",
   "PixelTrackSoAFromCUDA|": "Pixels|Host copy",
-  "PixelTrackTorchHighPuritySelector@alpaka|": "Pixels",	
+  "PixelTrackTorchHighPuritySelector@alpaka|": "Pixels",
   "PixelTripletHLTEDProducer|hltIter0HighPtTkMuPixelTracksHitTriplets": "Muons",
   "PixelTripletHLTEDProducer|": "Tracking",
   "PixelTripletLargeTipEDProducer|mixedTripletStepHitTriplets*": "Tracking",
