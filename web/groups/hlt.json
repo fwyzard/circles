@@ -832,6 +832,7 @@
   "SiStripClusterizer|": "Tracking",
   "SiStripClusterizer|calZeroBiasClusters": "AlCa",
   "SiStripClusterizer|siStripClusters": "Tracking",
+  "SiStripClusters2ApproxClusters|": "Tracking",
   "SiStripClusters2ApproxClusters_v1|": "Tracking",
   "SiStripDCSFilter|DCSStatusForSiStripCal*": "AlCa",
   "SiStripDigiToRawModule|": "Tracking",

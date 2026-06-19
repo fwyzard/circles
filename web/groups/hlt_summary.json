@@ -832,6 +832,7 @@
   "SiStripClusterizer|": "Full track and vertex",
   "SiStripClusterizer|calZeroBiasClusters": "others",
   "SiStripClusterizer|siStripClusters": "Full track and vertex",
+  "SiStripClusters2ApproxClusters|": "Full track and vertex",
   "SiStripClusters2ApproxClusters_v1|": "Full track and vertex",
   "SiStripDCSFilter|DCSStatusForSiStripCal*": "others",
   "SiStripDigiToRawModule|": "Full track and vertex",
