@@ -12,6 +12,7 @@
   "I/O": "#222222",
   "Jets/MET": "#ee3300",
   "L1T": "#cccccc",
+  "MTD": "#00ffff",
   "Muons": "#0040ff",
   "Particle Flow": "#ff66cc",
   "Pixels": "#33ff33",
