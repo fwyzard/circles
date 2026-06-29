@@ -102,7 +102,7 @@ def plot_stacked_bars(
     elif order == 'relative_increase':
         rel_dispersion = np.std(np.array(values_by_file), axis=0) / avg
         stack_order = list(np.argsort(rel_dispersion)) # ascending
-        
+
     for j in stack_order:
         seg = [values_by_file[i][j] for i in range(n_files)]
         ax1.bar(x, seg, bottom=bottoms, width=0.7, color=cat_colors[j], edgecolor="black", linewidth=0.4,
@@ -127,7 +127,8 @@ def plot_stacked_bars(
 
     # legend (categories)
     # If too many categories, legend can get huge; user can restrict with --top in future if needed.
-    ax1.legend(loc="upper left", bbox_to_anchor=(1, 1.05), fontsize=fontsize-2, frameon=False)
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles[::-1], labels[::-1], loc="upper left", bbox_to_anchor=(1, 1.05), fontsize=fontsize-2, frameon=False)
     hep.cms.text(f"{left_text}", ax=ax1, fontsize=fontsize+4)
     # mplhelp v1.0.0rc2 and later removed the "lumitext" method
     if version.parse(hep.__version__) < version.parse("1.0.0rc2"):
