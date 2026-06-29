@@ -863,7 +863,7 @@
   "TevMuonProducer|": "Muons",
   "TkAlCaRecoMonitor|ALCARECOSiStripCalMinBias*": "others",
   "TkAlCaRecoMonitor|ALCARECOTkAl*": "others",
-  "TICLCandidateProducer|": "HGCal",
+  "TICLCandidateProducer|": "Particle Flow",
   "TOFPIDProducer|": "MTD",
   "TOFPIDProducer|": "MTD",
   "TopoMuonHtPNetBXGBProducer|": "Muons",
