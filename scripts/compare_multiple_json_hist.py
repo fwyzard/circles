@@ -95,14 +95,18 @@ def plot_stacked_bars(
     x = list(range(n_files))
     bottoms = [0.0] * n_files
 
-    # stack order: small to large average contribution (prettier)
-    avg = np.mean(np.array(values_by_file), axis=0)  # per-cat average
+    avg = np.mean(np.array(values_by_file), axis=0)
     if order == 'absolute_increase':
-        stack_order = list(np.argsort(avg)) # ascending
+        stack_order_original = np.argsort(avg)
     elif order == 'relative_increase':
         rel_dispersion = np.std(np.array(values_by_file), axis=0) / avg
-        stack_order = list(np.argsort(rel_dispersion)) # ascending
-        
+        stack_order_original = np.argsort(rel_dispersion)
+    
+    # Lowercase-starting categories get key 0 (bottom) and uppercase get key 1 (top).
+    # They are placed under uppercase-starting categories.
+    stack_order = sorted(stack_order_original,
+                         key=lambda j: (0 if cats[j][0].islower() else 1, list(stack_order_original).index(j)))
+    
     for j in stack_order:
         seg = [values_by_file[i][j] for i in range(n_files)]
         ax1.bar(x, seg, bottom=bottoms, width=0.7, color=cat_colors[j], edgecolor="black", linewidth=0.4,
@@ -127,7 +131,8 @@ def plot_stacked_bars(
 
     # legend (categories)
     # If too many categories, legend can get huge; user can restrict with --top in future if needed.
-    ax1.legend(loc="upper left", bbox_to_anchor=(1, 1.05), fontsize=fontsize-2, frameon=False)
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles[::-1], labels[::-1], loc="upper left", bbox_to_anchor=(1, 1.05), fontsize=fontsize-2, frameon=False)
     hep.cms.text(f"{left_text}", ax=ax1, fontsize=fontsize+4)
     # mplhelp v1.0.0rc2 and later removed the "lumitext" method
     if version.parse(hep.__version__) < version.parse("1.0.0rc2"):
