@@ -94,7 +94,7 @@
   "CandidateVertexMerger|": "others",
   "ChainedJetCorrectorProducer|": "Jets/MET",
   "ChargedRefCandidateProducer|": "Full Track and Vertex",
-  "CkfTrackCandidateMaker|hltEgammaCkfTrackCandidatesForGSF": "E/Gamma",
+  "CkfTrackCandidateMaker|hltEgammaCkfTrackCandidatesForGSF*": "E/Gamma",
   "CkfTrackCandidateMaker|hltIter?HighPtTkMuCkfTrackCandidates": "Muons",
   "CkfTrackCandidateMaker|hltIter?IterL3*": "Muons",
   "CkfTrackCandidateMaker|hltIter?L3Muon*": "Muons",
