@@ -18,10 +18,10 @@ hlt_summary.json: hlt.json
   -e 's#: "L1T\>#: "others#' \
   -e 's#: "TOTEM\>#: "others#' \
   -e 's#: "ZDC\>#: "others#' \
-  -e '/PixelVertex/s#: "Vertices\>#: "Pixel track and vertex#' \
-  -e 's#: "Pixels\>#: "Pixel track and vertex#' \
-  -e 's#: "Tracking\>#: "Full track and vertex#' \
-  -e 's#: "Vertices\>#: "Full track and vertex#' \
+  -e '/PixelVertex/s#: "Vertices\>#: "Local Track#' \
+  -e 's#: "Vertices\>#: "Full Track and Vertex#' \
+  -e 's#: "Local Track\>#: "Local Track#' \
+  -e 's#: "Full Track\>#: "Full Track and Vertex#' \
   -e 's#|\(Alpaka\|Conversion\|GPU\|Portable\)\>##' \
   > hlt_summary.json
 
