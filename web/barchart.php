@@ -426,7 +426,7 @@ function updateDataView(){
     console.log("Unassigned modules"); console.table(unassigned);
   }
   normalise(current.data,current.dataset.total.events);
-  for (key in current.colours){
+  for (const key in current.colours){
     var grp = getGroup(key.split("|"));
     if (grp) grp.color = current.colours[key];
   }

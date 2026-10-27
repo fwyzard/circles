@@ -36,7 +36,7 @@ function fixed(value) {
 function parseGetData() {
   var data = {};
   window.location.search.slice(1).split("&").forEach(function (value) {
-    [key, val] = value.split("=").map(decodeURIComponent);
+    const [key, val] = value.split("=").map(decodeURIComponent);
     data[key] = (
       (val == undefined)? null: val
     );
@@ -99,7 +99,7 @@ function loadConfigFromURL() {
     show_animations: null
   };
   var url = new URL(window.location.href);
-  for (key in local_config) {
+  for (const key in local_config) {
     local_config[key] = url.searchParams.get(key);
   }
   if (local_config["data_name"] == null) {
@@ -121,7 +121,7 @@ function loadConfigFromURL() {
 // Write the configuration as URL parameters
 function convertConfigToURL(config) {
   var params = []
-  for (key in config) {
+  for (const key in config) {
     if (config[key] != null)
       params.push(encodeURIComponent(key) + "=" + encodeURIComponent(config[key]));
   }
@@ -333,11 +333,11 @@ function loadAvailableMetrics() {
       entry.dataset.title = resources[i].title;
       entry.dataset.unit = resources[i].unit;
       menu.add(entry);
-      if (key == config.resource) {
+      if (resources[i].name == config.resource) {
         menu.selectedIndex = i;
       }
     } else {
-      for (key in resources[i]) {
+      for (const key in resources[i]) {
         var entry = document.createElement("option");
         entry.text = resources[i][key];
         entry.value = key;
@@ -553,7 +553,7 @@ function compileGroups() {
   current.compiled = null;
   var compiled = [];
 
-  for (key in current.groups) {
+  for (const key in current.groups) {
     // convert a glob pattern into a regular expression
     var t, l;
     if (key.includes("|")) {
@@ -710,7 +710,7 @@ function updateDataView() {
     normalise(current.data, current.dataset.total.events);
   }
 
-  for (key in current.colours) {
+  for (const key in current.colours) {
     group = getGroup(key.split("|"));
     if (group != null) {
       group.color = current.colours[key];
